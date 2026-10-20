@@ -66,7 +66,7 @@
             <Setter Property="Padding" Value="0" />
             <Setter Property="ItemsPanel">
                 <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal" Spacing="6" />
+                    <WrapPanel ItemSpacing="6" LineSpacing="6" />
                 </ItemsPanelTemplate>
             </Setter>
         </Style>
@@ -79,18 +79,18 @@
 
     <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
         <Border Grid.Row="0" Classes="rail showcase">
-            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="12">
-                <ListBox Grid.Column="0" x:Name="Filters" Classes="filters" VerticalAlignment="Center"
+            <WrapPanel ItemSpacing="12" LineSpacing="8">
+                <ListBox x:Name="Filters" Classes="filters" VerticalAlignment="Center"
                          SelectionChanged="Rebuild" />
-                <ToggleSwitch Grid.Column="2" x:Name="ByValue" VerticalAlignment="Center"
+                <ToggleSwitch x:Name="ByValue" VerticalAlignment="Center"
                               OffContent="by title" OnContent="by value" IsCheckedChanged="Rebuild" />
-                <ToggleSwitch Grid.Column="3" x:Name="AsRows" VerticalAlignment="Center"
+                <ToggleSwitch x:Name="AsRows" VerticalAlignment="Center"
                               OffContent="grid" OnContent="list" IsCheckedChanged="Rebuild" />
-                <ToggleSwitch Grid.Column="4" x:Name="Sized" VerticalAlignment="Center" IsChecked="True"
+                <ToggleSwitch x:Name="Sized" VerticalAlignment="Center" IsChecked="True"
                               OffContent="Position" OnContent="Position+Size" IsCheckedChanged="Rearm" />
-                <Button Grid.Column="5" x:Name="Drop" VerticalAlignment="Center"
+                <Button x:Name="Drop" VerticalAlignment="Center"
                         Content="Drop mid-reflow" Click="Churn" />
-            </Grid>
+            </WrapPanel>
         </Border>
 
         <Border Grid.Row="1" Classes="stage">

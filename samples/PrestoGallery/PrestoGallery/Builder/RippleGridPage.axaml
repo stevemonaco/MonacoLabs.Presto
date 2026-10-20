@@ -5,13 +5,11 @@
                        xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
                        mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="900"
                        x:Class="PrestoGallery.Builder.RippleGridPage">
-    <ScrollViewer>
-        <StackPanel Spacing="16">
-            <TextBlock Classes="caption" Text="Click any cell: the wave starts there" />
-            <Border Classes="stage">
-                <UniformGrid x:Name="Cells" HorizontalAlignment="Center" VerticalAlignment="Center" Cursor="Hand" />
-            </Border>
-            <showcase:CodePanel x:Name="CodeText" />
-        </StackPanel>
-    </ScrollViewer>
+    <StackPanel Spacing="16">
+        <TextBlock Classes="caption" Text="Click any cell: the wave starts there" />
+        <Border Classes="stage">
+            <UniformGrid x:Name="Cells" HorizontalAlignment="Center" VerticalAlignment="Center" Cursor="Hand" />
+        </Border>
+        <showcase:CodePanel x:Name="CodeText" />
+    </StackPanel>
 </showcase:ShowcasePage>

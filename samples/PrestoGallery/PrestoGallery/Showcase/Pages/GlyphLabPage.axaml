@@ -5,74 +5,72 @@
                        xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
                        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
                        x:Class="PrestoGallery.Showcase.Pages.GlyphLabPage">
-    <ScrollViewer>
-        <StackPanel Spacing="12">
-            <Border Classes="stage">
-                <StackPanel Spacing="12">
-                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="12">
-                        <TextBlock Classes="eyebrow showcase" Text="WRITE-IN · RECIPES.WRITEIN" VerticalAlignment="Center" />
-                        <Slider x:Name="WriteSpeed" Grid.Column="1" Width="140" Minimum="0.25" Maximum="2" Value="1"
-                                ToolTip.Tip="Speed" VerticalAlignment="Center" />
-                        <ToggleSwitch x:Name="LetterByLetter" Grid.Column="2" IsChecked="True"
-                                      OnContent="Letter by letter" OffContent="All at once" />
-                        <Button x:Name="ReplayButton" Grid.Column="3" Content="Replay" Click="Replay" />
-                    </Grid>
-                    <TextBlock x:Name="Handwriting" Text="Glyphs" FontFamily="{StaticResource ScriptDisplayFont}" FontSize="120"
-                               Foreground="{x:Static showcase:Palette.AccentPale}" HorizontalAlignment="Center" />
-                </StackPanel>
-            </Border>
+    <StackPanel Spacing="12">
+        <Border Classes="stage">
+            <StackPanel Spacing="12">
+                <WrapPanel ItemSpacing="12" LineSpacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="WRITE-IN · RECIPES.WRITEIN" VerticalAlignment="Center" />
+                    <Slider x:Name="WriteSpeed" Width="140" Minimum="0.25" Maximum="2" Value="1"
+                            ToolTip.Tip="Speed" VerticalAlignment="Center" />
+                    <ToggleSwitch x:Name="LetterByLetter" IsChecked="True"
+                                  OnContent="Letter by letter" OffContent="All at once" />
+                    <Button x:Name="ReplayButton" Content="Replay" Click="Replay" />
+                </WrapPanel>
+                <TextBlock x:Name="Handwriting" Text="Glyphs" FontFamily="{StaticResource ScriptDisplayFont}" FontSize="120"
+                           Foreground="{x:Static showcase:Palette.AccentPale}" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
 
-            <Border Classes="stage">
-                <StackPanel Spacing="12">
-                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
-                        <TextBlock Classes="eyebrow showcase" Text="LETTER MORPH · RECIPES.MORPHGLYPHS" VerticalAlignment="Center" />
-                        <ComboBox x:Name="FontPicker" Grid.Column="1" SelectedIndex="1">
-                            <ComboBoxItem Content="Inter" FontFamily="{x:Static FontFamily.Default}" />
-                            <ComboBoxItem Content="Archivo" FontFamily="{StaticResource DisplayFont}" />
-                            <ComboBoxItem Content="Playfair Display" FontFamily="{StaticResource SerifDisplayFont}" />
-                            <ComboBoxItem Content="Dancing Script" FontFamily="{StaticResource ScriptDisplayFont}" />
-                        </ComboBox>
-                        <ToggleSwitch x:Name="ContoursToggle" Grid.Column="2" OnContent="Show contours" OffContent="Show contours"
-                                      IsCheckedChanged="ToggleContours" />
-                    </Grid>
-                    <Panel Height="280">
-                        <TextBlock x:Name="Glyph" Text="A" FontFamily="{StaticResource DisplayFont}" FontSize="220"
-                                   Foreground="{x:Static showcase:Palette.AccentDim}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        <Canvas x:Name="ContourLayer" IsHitTestVisible="False" />
-                    </Panel>
-                </StackPanel>
-            </Border>
+        <Border Classes="stage">
+            <StackPanel Spacing="12">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                    <TextBlock Classes="eyebrow showcase" Text="LETTER MORPH · RECIPES.MORPHGLYPHS" VerticalAlignment="Center" />
+                    <ComboBox x:Name="FontPicker" Grid.Column="1" SelectedIndex="1">
+                        <ComboBoxItem Content="Inter" FontFamily="{x:Static FontFamily.Default}" />
+                        <ComboBoxItem Content="Archivo" FontFamily="{StaticResource DisplayFont}" />
+                        <ComboBoxItem Content="Playfair Display" FontFamily="{StaticResource SerifDisplayFont}" />
+                        <ComboBoxItem Content="Dancing Script" FontFamily="{StaticResource ScriptDisplayFont}" />
+                    </ComboBox>
+                    <ToggleSwitch x:Name="ContoursToggle" Grid.Column="2" OnContent="Show contours" OffContent="Show contours"
+                                  IsCheckedChanged="ToggleContours" />
+                </Grid>
+                <Panel Height="280">
+                    <TextBlock x:Name="Glyph" Text="A" FontFamily="{StaticResource DisplayFont}" FontSize="220"
+                               Foreground="{x:Static showcase:Palette.AccentDim}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Canvas x:Name="ContourLayer" IsHitTestVisible="False" />
+                </Panel>
+            </StackPanel>
+        </Border>
 
-            <Border Classes="stage">
-                <StackPanel Spacing="12">
-                    <TextBlock Classes="eyebrow showcase" Text="HOLE KEEPING · CONTOURS PAIRED OUTER WITH OUTER, HOLE WITH HOLE · VS ONE FIGURE" />
-                    <Grid ColumnDefinitions="*,*" Height="220">
-                        <TextBlock x:Name="Paired" Text="O" FontFamily="{StaticResource DisplayFont}" FontSize="180" FontWeight="Bold"
-                                   Foreground="{x:Static showcase:Palette.Aqua}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        <Path x:Name="OneFigure" Grid.Column="1" Fill="{x:Static showcase:Palette.Coral}"
-                              HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Grid>
-                </StackPanel>
-            </Border>
+        <Border Classes="stage">
+            <StackPanel Spacing="12">
+                <TextBlock Classes="eyebrow showcase" Text="HOLE KEEPING · CONTOURS PAIRED OUTER WITH OUTER, HOLE WITH HOLE · VS ONE FIGURE" />
+                <Grid ColumnDefinitions="*,*" Height="220">
+                    <TextBlock x:Name="Paired" Text="O" FontFamily="{StaticResource DisplayFont}" FontSize="180" FontWeight="Bold"
+                               Foreground="{x:Static showcase:Palette.Aqua}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Path x:Name="OneFigure" Grid.Column="1" Fill="{x:Static showcase:Palette.Coral}"
+                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </StackPanel>
+        </Border>
 
-            <Border Classes="stage">
-                <StackPanel Spacing="12">
-                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
-                        <TextBlock Classes="eyebrow showcase" Text="SHATTER · CLICK THE WORD, REVERSE TO REASSEMBLE" VerticalAlignment="Center" />
-                        <Slider x:Name="ShardCount" Grid.Column="1" Width="140" Minimum="2" Maximum="24" Value="8"
-                                IsSnapToTickEnabled="True" TickFrequency="1" ToolTip.Tip="Shards per letter" VerticalAlignment="Center" />
-                        <Button x:Name="ReverseButton" Grid.Column="2" Content="Reverse" Click="Reverse" />
-                    </Grid>
-                    <Border Background="Transparent" Cursor="Hand" Height="160" Tapped="Shatter">
-                        <TextBlock x:Name="ShatterWord" Text="SHARDS" FontFamily="{StaticResource SerifDisplayFont}"
-                                   FontSize="110" FontWeight="Bold" Foreground="{x:Static showcase:Palette.Amber}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                </StackPanel>
-            </Border>
+        <Border Classes="stage">
+            <StackPanel Spacing="12">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                    <TextBlock Classes="eyebrow showcase" Text="SHATTER · CLICK THE WORD, REVERSE TO REASSEMBLE" VerticalAlignment="Center" />
+                    <Slider x:Name="ShardCount" Grid.Column="1" Width="140" Minimum="2" Maximum="24" Value="8"
+                            IsSnapToTickEnabled="True" TickFrequency="1" ToolTip.Tip="Shards per letter" VerticalAlignment="Center" />
+                    <Button x:Name="ReverseButton" Grid.Column="2" Content="Reverse" Click="Reverse" />
+                </Grid>
+                <Border Background="Transparent" Cursor="Hand" Height="160" Tapped="Shatter">
+                    <TextBlock x:Name="ShatterWord" Text="SHARDS" FontFamily="{StaticResource SerifDisplayFont}"
+                               FontSize="110" FontWeight="Bold" Foreground="{x:Static showcase:Palette.Amber}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </StackPanel>
+        </Border>
 
-            <showcase:CodePanel x:Name="HowCode" Header="How it's built" IsExpanded="False" />
-        </StackPanel>
-    </ScrollViewer>
+        <showcase:CodePanel x:Name="HowCode" Header="How it's built" IsExpanded="False" />
+    </StackPanel>
 </showcase:ShowcasePage>

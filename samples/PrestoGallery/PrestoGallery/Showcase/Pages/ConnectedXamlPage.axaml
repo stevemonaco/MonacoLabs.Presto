@@ -94,11 +94,11 @@
         </DataTemplate>
     </showcase:ShowcasePage.DataTemplates>
 
-    <ScrollViewer>
-        <StackPanel Spacing="12">
-            <ToggleSwitch IsChecked="{Binding CrossFade}" OnContent="Cross-fade pages (TransitioningContentControl)"
-                          OffContent="Cross-fade pages (TransitioningContentControl)" />
-            <Border Width="712" Height="440" Padding="16" CornerRadius="12" HorizontalAlignment="Left"
+    <StackPanel Spacing="12">
+        <ToggleSwitch IsChecked="{Binding CrossFade}" OnContent="Cross-fade pages (TransitioningContentControl)"
+                      OffContent="Cross-fade pages (TransitioningContentControl)" />
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+            <Border Width="712" Height="440" HorizontalAlignment="Left" Padding="16" CornerRadius="12"
                     Background="{x:Static showcase:Palette.Surface}">
                 <!-- snippet: ConnectedXamlHosts -->
                 <Panel>
@@ -107,13 +107,13 @@
                 </Panel>
                 <!-- /snippet -->
             </Border>
-            <TextBlock Classes="caption" Text="A gallery card: the photo and city name are keyed by the destination's Id" />
-            <showcase:CodePanel x:Name="CardCode" Language="Xaml" Code="{x:Static showcase:Snippets.ConnectedXamlCard}" />
-            <TextBlock Classes="caption" Text="The detail view: the same keys, the arc recipe for the hero, and the text anchored to the photo's flight" />
-            <showcase:CodePanel x:Name="DetailCode" Language="Xaml" Code="{x:Static showcase:Snippets.ConnectedXamlDetail}" />
-            <showcase:CodePanel x:Name="ArcCode" />
-            <TextBlock Classes="caption" Text="The hosts: the switch moves the pages from one to the other" />
-            <showcase:CodePanel x:Name="HostsCode" Language="Xaml" Code="{x:Static showcase:Snippets.ConnectedXamlHosts}" />
-        </StackPanel>
-    </ScrollViewer>
+        </ScrollViewer>
+        <TextBlock Classes="caption" Text="A gallery card: the photo and city name are keyed by the destination's Id" />
+        <showcase:CodePanel x:Name="CardCode" Language="Xaml" Code="{x:Static showcase:Snippets.ConnectedXamlCard}" />
+        <TextBlock Classes="caption" Text="The detail view: the same keys, the arc recipe for the hero, and the text anchored to the photo's flight" />
+        <showcase:CodePanel x:Name="DetailCode" Language="Xaml" Code="{x:Static showcase:Snippets.ConnectedXamlDetail}" />
+        <showcase:CodePanel x:Name="ArcCode" />
+        <TextBlock Classes="caption" Text="The hosts: the switch moves the pages from one to the other" />
+        <showcase:CodePanel x:Name="HostsCode" Language="Xaml" Code="{x:Static showcase:Snippets.ConnectedXamlHosts}" />
+    </StackPanel>
 </showcase:ShowcasePage>

@@ -12,33 +12,33 @@
         </Border>
 
         <Border Grid.Row="1" Classes="rail showcase">
-            <Grid ColumnDefinitions="Auto,Auto,*,Auto,*,Auto,Auto,Auto" ColumnSpacing="14">
-                <ComboBox Grid.Column="0" x:Name="SamplingPicker" SelectedIndex="1" SelectionChanged="SamplingChanged">
+            <WrapPanel ItemSpacing="14" LineSpacing="8">
+                <ComboBox x:Name="SamplingPicker" SelectedIndex="1" SelectionChanged="SamplingChanged">
                     <ComboBoxItem Content="Edge" />
                     <ComboBoxItem Content="Fill" />
                     <ComboBoxItem Content="Edge + Fill" />
                 </ComboBox>
-                <TextBlock Grid.Column="1" x:Name="CountText" Classes="mono" Margin="0" Width="118" VerticalAlignment="Center" Text="0 particles" />
-                <Slider Grid.Column="2" x:Name="SpacingSlider" Minimum="3" Maximum="12" Value="5" TickFrequency="1" IsSnapToTickEnabled="True"
+                <TextBlock x:Name="CountText" Classes="mono" Margin="0" Width="118" VerticalAlignment="Center" Text="0 particles" />
+                <Slider x:Name="SpacingSlider" Width="140" Minimum="3" Maximum="12" Value="5" TickFrequency="1" IsSnapToTickEnabled="True"
                         ToolTip.Tip="Spacing" VerticalAlignment="Center" ValueChanged="SamplingChanged" />
-                <ComboBox Grid.Column="3" x:Name="TransitionPicker" SelectedIndex="0" ToolTip.Tip="Transition">
+                <ComboBox x:Name="TransitionPicker" SelectedIndex="0" ToolTip.Tip="Transition">
                     <ComboBoxItem Content="Nearest" />
                     <ComboBoxItem Content="Sweep" />
                     <ComboBoxItem Content="Burst" />
                     <ComboBoxItem Content="Swarm" />
                 </ComboBox>
-                <Slider Grid.Column="4" x:Name="DurationSlider" Minimum="150" Maximum="2000" Value="400" TickFrequency="50" IsSnapToTickEnabled="True"
+                <Slider x:Name="DurationSlider" Width="140" Minimum="150" Maximum="2000" Value="400" TickFrequency="50" IsSnapToTickEnabled="True"
                         ToolTip.Tip="{Binding $self.Value, StringFormat='Duration {0:0} ms'}" VerticalAlignment="Center" />
-                <ComboBox Grid.Column="5" x:Name="ColorPicker" SelectedIndex="0" SelectionChanged="ColorChanged">
+                <ComboBox x:Name="ColorPicker" SelectedIndex="0" SelectionChanged="ColorChanged">
                     <ComboBoxItem Content="Accent" Foreground="{x:Static showcase:Palette.AccentBright}" />
                     <ComboBoxItem Content="Aqua" Foreground="{x:Static showcase:Palette.Aqua}" />
                     <ComboBoxItem Content="Coral" Foreground="{x:Static showcase:Palette.Coral}" />
                     <ComboBoxItem Content="Amber" Foreground="{x:Static showcase:Palette.Amber}" />
                     <ComboBoxItem Content="Ink" Foreground="{x:Static showcase:Palette.Ink}" />
                 </ComboBox>
-                <Button Grid.Column="6" Content="Next word, freeze UI 2 s" Click="Freeze" />
-                <showcase:FpsMeter Grid.Column="7" VerticalAlignment="Center" />
-            </Grid>
+                <Button Content="Next word, freeze UI 2 s" Click="Freeze" />
+                <showcase:FpsMeter VerticalAlignment="Center" />
+            </WrapPanel>
         </Border>
 
         <Border Grid.Row="2" Classes="rail showcase">

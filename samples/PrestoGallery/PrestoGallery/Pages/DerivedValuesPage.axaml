@@ -12,23 +12,21 @@
         <local:DerivedValuesViewModel />
     </showcase:ShowcasePage.DataContext>
 
-    <ScrollViewer>
-        <StackPanel Spacing="12">
-            <Border x:Name="Stage" Classes="stage" Height="320">
-                <Panel>
-                    <!-- snippet: DerivedValuesHeader -->
-                    <TextBlock x:Name="Header" Text="Sweep across the stage" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center"
-                               Opacity="{presto:Follow {Binding HeaderOpacity}, Duration=0}" />
-                    <!-- /snippet -->
-                    <Border x:Name="Card" Width="140" Height="180" CornerRadius="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Panel>
-            </Border>
-            <showcase:CodePanel x:Name="GraphCode" />
+    <StackPanel Spacing="12">
+        <Border x:Name="Stage" Classes="stage" Height="320">
+            <Panel>
+                <!-- snippet: DerivedValuesHeader -->
+                <TextBlock x:Name="Header" Text="Sweep across the stage" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center"
+                           Opacity="{presto:Follow {Binding HeaderOpacity}, Duration=0}" />
+                <!-- /snippet -->
+                <Border x:Name="Card" Width="140" Height="180" CornerRadius="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Panel>
+        </Border>
+        <showcase:CodePanel x:Name="GraphCode" />
 
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="The header's opacity is derived in the view model from a Sweep the page feeds, and {presto:Follow} with Duration=0 writes each value straight through." />
-            <showcase:CodeTabs x:Name="HeaderTabs" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.DerivedValuesHeader}" CSharp="{Binding HeaderCode}" />
-        </StackPanel>
-    </ScrollViewer>
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="The header's opacity is derived in the view model from a Sweep the page feeds, and {presto:Follow} with Duration=0 writes each value straight through." />
+        <showcase:CodeTabs x:Name="HeaderTabs" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.DerivedValuesHeader}" CSharp="{Binding HeaderCode}" />
+    </StackPanel>
 </showcase:ShowcasePage>

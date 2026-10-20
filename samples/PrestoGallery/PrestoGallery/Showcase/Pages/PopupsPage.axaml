@@ -81,7 +81,7 @@
         <Border Grid.Row="0" Classes="stage">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="28">
                 <Border Classes="toolbar" HorizontalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <WrapPanel ItemSpacing="6" LineSpacing="6">
                         <Button x:Name="MenuButton" Classes="specimen" Content="File">
                             <Button.Flyout>
                                 <MenuFlyout Placement="BottomEdgeAlignedLeft">
@@ -108,12 +108,12 @@
                                         presto:Popover.Close="{presto:Popover Distance=10}">
                                     <StackPanel Width="250" Spacing="12">
                                         <TextBlock Text="Share “Aurora”" FontWeight="SemiBold" />
-                                        <StackPanel Orientation="Horizontal">
+                                        <WrapPanel>
                                             <Border Classes="avatar" Background="{x:Static showcase:Palette.Accent}"><TextBlock Text="AK" /></Border>
                                             <Border Classes="avatar" Background="{x:Static showcase:Palette.Aqua}"><TextBlock Text="MS" /></Border>
                                             <Border Classes="avatar" Background="{x:Static showcase:Palette.Amber}"><TextBlock Text="JL" /></Border>
                                             <Border Classes="avatar" Background="{x:Static showcase:Palette.Rose}"><TextBlock Text="+3" /></Border>
-                                        </StackPanel>
+                                        </WrapPanel>
                                         <TextBlock Classes="caption" TextWrapping="Wrap" Text="Six people can edit. Anyone with the link can view." />
                                         <showcase:CodePanel Code="presto.dev/s/aurora" Padding="10,6" />
                                     </StackPanel>
@@ -123,28 +123,28 @@
 
                         <ComboBox x:Name="Picker" SelectedIndex="0" Width="150" VerticalAlignment="Center">
                             <ComboBoxItem>
-                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                <WrapPanel ItemSpacing="8" LineSpacing="6">
                                     <Ellipse Classes="dot" Fill="{x:Static showcase:Palette.Lime}" />
                                     <TextBlock Text="Online" />
-                                </StackPanel>
+                                </WrapPanel>
                             </ComboBoxItem>
                             <ComboBoxItem>
-                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                <WrapPanel ItemSpacing="8" LineSpacing="6">
                                     <Ellipse Classes="dot" Fill="{x:Static showcase:Palette.Amber}" />
                                     <TextBlock Text="Away" />
-                                </StackPanel>
+                                </WrapPanel>
                             </ComboBoxItem>
                             <ComboBoxItem>
-                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                <WrapPanel ItemSpacing="8" LineSpacing="6">
                                     <Ellipse Classes="dot" Fill="{x:Static showcase:Palette.Coral}" />
                                     <TextBlock Text="Busy" />
-                                </StackPanel>
+                                </WrapPanel>
                             </ComboBoxItem>
                             <ComboBoxItem>
-                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                <WrapPanel ItemSpacing="8" LineSpacing="6">
                                     <Ellipse Classes="dot" Fill="{x:Static showcase:Palette.InkDim}" />
                                     <TextBlock Text="Invisible" />
-                                </StackPanel>
+                                </WrapPanel>
                             </ComboBoxItem>
                         </ComboBox>
 
@@ -158,13 +158,13 @@
                                 </StackPanel>
                             </ToolTip.Tip>
                         </Button>
-                    </StackPanel>
+                    </WrapPanel>
                 </Border>
 
                 <StackPanel Spacing="10" HorizontalAlignment="Center">
                     <TextBlock Classes="caption" HorizontalAlignment="Center" Text="Right-click a sketch" />
-                    <StackPanel Orientation="Horizontal" Spacing="14">
-                        <StackPanel.Styles>
+                    <WrapPanel ItemSpacing="14" LineSpacing="6">
+                        <WrapPanel.Styles>
                             <Style Selector="Border.tile">
                                 <!-- A template, so each tile gets a menu of its own. -->
                                 <Setter Property="ContextMenu">
@@ -186,7 +186,7 @@
                                     </Template>
                                 </Setter>
                             </Style>
-                        </StackPanel.Styles>
+                        </WrapPanel.Styles>
                         <Border x:Name="ContextTarget" Classes="tile">
                             <StackPanel Spacing="4" VerticalAlignment="Bottom">
                                 <Border Height="4" Width="40" HorizontalAlignment="Left" CornerRadius="2" Background="{x:Static showcase:Palette.Accent}" />
@@ -208,7 +208,7 @@
                                 <TextBlock Classes="caption" Text="Edited last week" />
                             </StackPanel>
                         </Border>
-                    </StackPanel>
+                    </WrapPanel>
                 </StackPanel>
             </StackPanel>
         </Border>

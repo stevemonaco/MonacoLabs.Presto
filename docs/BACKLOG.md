@@ -8,6 +8,7 @@ When an item is closed, its line is deleted.
 
 - [BRIDGE-HELPERS] A detached control with a paused `Composition.Additive` animation is not collectable: `Additive.Lookups` holds the target strongly until cancel, and the tracker only pauses, so BRIDGE-HELPERS-031 fails for additive composition.
 - [BRIDGE-SCROLLOBSERVER] An observer whose target detaches stays in its container and is evaluated every scroll frame until reverted; decide between reverting it and suspending it on detach.
+- [BRIDGE-SCROLL] `Smooth` takes the wheel on the tunnel pass, so an outer smoothed scroller scrolls before an inner scroller under the pointer that could still scroll: on Windows, a notch over a gallery `CodePanel` or a page's list moves the whole page until it reaches its end. It yields only to Ctrl/Cmd (BRIDGE-SCROLL-085) and at its own end (BRIDGE-SCROLL-016).
 
 ## Manual and platform checks
 
@@ -69,6 +70,7 @@ When an item is closed, its line is deleted.
 - [CORE-MOTIONVALUE] By hand on the Desktop Gestures page's drag-to-open card: slow drags rest on the nearest point, flicks advance, re-grabbing mid-settle does not jump, and `--motion reduced` lands at once (DevTools sends no drags; only the slow-drag and flick cases have a headless test).
 - [CORE-MOTIONVALUE] By hand on the Desktop Gestures page's trails row: the spring trail and the Lag (40 ms) trail chase the pointer, the engine idles once the dots settle (DevTools frame stats), and the Resist indicator stretches a fifth as far past ±80 (DevTools sends no pointer moves; only `GesturesPageTests` covers it).
 - [BRIDGE-REVEAL] With the Activity feed's Reveal set to "Every time" on Desktop, scroll up and judge whether rows rising from below look wrong; done when judged, and if they do, a change proposal reopens mirroring a reveal by scroll direction (a non-goal today).
+- [SAMPLE] By hand on the Desktop gallery, where DevTools could not reach (popups, overlay ghosts, drags): Adaptive sheet's settings flyout at the gear on Tablet and Desktop, the details drawer's 20 DIP edge swipe and the bottom sheet's drag between its half and full stops; Storefront's center-out card exit and Lifecycle's Wait against Sync on "Clear rows" by eye; Micro-interactions' Place order at 125% scaling (the accepted half-pixel tie); and in Tempo, tag-chip swaps both ways at full and reduced motion with no title overlapping another at full opacity.
 
 ## Candidate features
 

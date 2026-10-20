@@ -77,7 +77,7 @@ public sealed class BuilderPagesTests
     {
         var page = new RecipesPage();
         var window = SceneHarness.Show(page, 1280, 900);
-        var buttons = page.GetControl<StackPanel>("Row").Children.OfType<Button>().ToList();
+        var buttons = page.GetControl<Panel>("Row").Children.OfType<Button>().ToList();
 
         buttons[0].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         var first = page.Played!;

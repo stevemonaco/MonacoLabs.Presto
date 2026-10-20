@@ -68,55 +68,53 @@
         <!-- /snippet -->
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer>
-        <StackPanel Spacing="16">
-            <Border Classes="stage">
-                <StackPanel Spacing="28" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" Spacing="14" HorizontalAlignment="Center">
-                        <Button x:Name="Filled" Classes="accent" Content="Filled" Padding="22,10" />
-                        <Button x:Name="Plain" Classes="plain" Content="Default color" Padding="22,10" />
-                        <Button x:Name="Icon" Classes="icon" Width="44" Height="44" CornerRadius="22" Background="Transparent"
-                                VerticalAlignment="Center" Margin="12,0,0,0">
-                            <PathIcon Data="{StaticResource HeartIcon}" Width="18" Height="18" />
-                        </Button>
-                    </StackPanel>
+    <StackPanel Spacing="16">
+        <Border Classes="stage">
+            <StackPanel Spacing="28" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <WrapPanel ItemSpacing="14" LineSpacing="6" HorizontalAlignment="Center">
+                    <Button x:Name="Filled" Classes="accent" Content="Filled" Padding="22,10" />
+                    <Button x:Name="Plain" Classes="plain" Content="Default color" Padding="22,10" />
+                    <Button x:Name="Icon" Classes="icon" Width="44" Height="44" CornerRadius="22" Background="Transparent"
+                            VerticalAlignment="Center" Margin="12,0,0,0">
+                        <PathIcon Data="{StaticResource HeartIcon}" Width="18" Height="18" />
+                    </Button>
+                </WrapPanel>
 
-                    <StackPanel Orientation="Horizontal" Spacing="14" HorizontalAlignment="Center">
-                        <Border x:Name="AquaCard" Classes="card aqua">
-                            <StackPanel Spacing="4" VerticalAlignment="Bottom">
-                                <TextBlock Classes="title" Text="Tide pools" />
-                                <TextBlock Classes="caption" Text="A plain Border" />
-                            </StackPanel>
-                        </Border>
-                        <Border Classes="card amber">
-                            <StackPanel Spacing="4" VerticalAlignment="Bottom">
-                                <TextBlock Classes="title" Text="Night market" />
-                                <TextBlock Classes="caption" Text="Tab here, press Space" />
-                            </StackPanel>
-                        </Border>
-                        <Border Classes="card rose">
-                            <StackPanel Spacing="4" VerticalAlignment="Bottom">
-                                <TextBlock Classes="title" Text="Aurora" />
-                                <TextBlock Classes="caption" Text="Hover for the state layer" />
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
+                <WrapPanel ItemSpacing="14" LineSpacing="6" HorizontalAlignment="Center">
+                    <Border x:Name="AquaCard" Classes="card aqua">
+                        <StackPanel Spacing="4" VerticalAlignment="Bottom">
+                            <TextBlock Classes="title" Text="Tide pools" />
+                            <TextBlock Classes="caption" Text="A plain Border" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card amber">
+                        <StackPanel Spacing="4" VerticalAlignment="Bottom">
+                            <TextBlock Classes="title" Text="Night market" />
+                            <TextBlock Classes="caption" Text="Tab here, press Space" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card rose">
+                        <StackPanel Spacing="4" VerticalAlignment="Bottom">
+                            <TextBlock Classes="title" Text="Aurora" />
+                            <TextBlock Classes="caption" Text="Hover for the state layer" />
+                        </StackPanel>
+                    </Border>
+                </WrapPanel>
+            </StackPanel>
+        </Border>
 
-            <showcase:CodePanel x:Name="SurfacesCode" Language="Xaml" />
+        <showcase:CodePanel x:Name="SurfacesCode" Language="Xaml" />
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Hold a press and the ink grows from your finger until it covers the element; let go and it fades while it keeps growing, so a quick tap still reads. Ripple.Enabled works on any Control: the cards are plain Borders, made focusable so Enter or Space ripples them from the center. The ink is clipped to each element's rounded corners unless Bounded is false, as on the heart, whose circle grows from the center past its edges. StateLayer adds Material's tint in the ink's hue, 8 % on hover and 10 % on keyboard focus or press. The ink is drawn on the render thread by a composition visual of the element's own, over its content." />
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="Hold a press and the ink grows from your finger until it covers the element; let go and it fades while it keeps growing, so a quick tap still reads. Ripple.Enabled works on any Control: the cards are plain Borders, made focusable so Enter or Space ripples them from the center. The ink is clipped to each element's rounded corners unless Bounded is false, as on the heart, whose circle grows from the center past its edges. StateLayer adds Material's tint in the ink's hue, 8 % on hover and 10 % on keyboard focus or press. The ink is drawn on the render thread by a composition visual of the element's own, over its content." />
 
-            <Border Classes="stage" Padding="6">
-                <ListBox x:Name="Rows" Height="320" Background="Transparent" />
-            </Border>
+        <Border Classes="stage" Padding="6">
+            <ListBox x:Name="Rows" Height="320" Background="Transparent" />
+        </Border>
 
-            <showcase:CodePanel x:Name="ListCode" Language="Xaml" />
+        <showcase:CodePanel x:Name="ListCode" Language="Xaml" />
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Every row is bounded and state-layered, and the style clears Fluent's own hover and pressed fills so the two do not stack. Dragging out of a row, losing the pointer or scrolling the list cancels a held ripple. On touch a press inside a scroller waits 100 ms before it shows, so a fling never ripples, and a tap released sooner still gets a short one. Under reduced motion there is no ink at all: a press only tints, at once." />
-        </StackPanel>
-    </ScrollViewer>
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="Every row is bounded and state-layered, and the style clears Fluent's own hover and pressed fills so the two do not stack. Dragging out of a row, losing the pointer or scrolling the list cancels a held ripple. On touch a press inside a scroller waits 100 ms before it shows, so a fling never ripples, and a tap released sooner still gets a short one. Under reduced motion there is no ink at all: a press only tints, at once." />
+    </StackPanel>
 </showcase:ShowcasePage>

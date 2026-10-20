@@ -5,7 +5,7 @@
                        xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
                        xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
                        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
-                       x:Class="PrestoGallery.Showcase.Pages.AdaptiveSheetPage">
+                       x:Class="PrestoGallery.Showcase.Pages.AdaptiveSheetPage" FillsViewport="True">
     <showcase:ShowcasePage.Styles>
         <Style Selector="TabStripItem">
             <Setter Property="FontSize" Value="14" />

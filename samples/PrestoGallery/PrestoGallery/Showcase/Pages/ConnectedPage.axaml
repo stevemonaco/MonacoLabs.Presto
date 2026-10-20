@@ -70,32 +70,34 @@
     </showcase:ShowcasePage.Styles>
 
     <StackPanel Spacing="12">
-        <Border x:Name="Stage" Padding="12" CornerRadius="12" HorizontalAlignment="Left" VerticalAlignment="Top"
-                Background="{x:Static showcase:Palette.Surface}">
-            <Grid>
-                <UniformGrid x:Name="Albums" Columns="4" Rows="3" />
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+            <Border x:Name="Stage" Padding="12" CornerRadius="12" HorizontalAlignment="Left" VerticalAlignment="Top"
+                    Background="{x:Static showcase:Palette.Surface}">
+                <Grid>
+                    <UniformGrid x:Name="Albums" Columns="4" Rows="3" />
 
-                <presto:Modal x:Name="Detail" Scrim="Transparent" Closed="DetailClosed">
-                    <Grid ColumnDefinitions="244,*" ColumnSpacing="24" Margin="5">
-                        <StackPanel Spacing="16">
-                            <Border x:Name="Hero" Height="120" />
-                            <StackPanel Orientation="Horizontal" Spacing="12">
-                                <Button x:Name="Play">
-                                    <PathIcon Width="16" Height="16" Foreground="{x:Static showcase:Palette.Background}"
-                                              Data="M3,1 L14,8 L3,15 Z" />
-                                </Button>
-                                <Button x:Name="Back" Content="Back" Opacity="0" VerticalAlignment="Center" Click="BackClicked" />
+                    <presto:Modal x:Name="Detail" Scrim="Transparent" Closed="DetailClosed">
+                        <Grid ColumnDefinitions="244,*" ColumnSpacing="24" Margin="5">
+                            <StackPanel Spacing="16">
+                                <Border x:Name="Hero" Height="120" />
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Button x:Name="Play">
+                                        <PathIcon Width="16" Height="16" Foreground="{x:Static showcase:Palette.Background}"
+                                                  Data="M3,1 L14,8 L3,15 Z" />
+                                    </Button>
+                                    <Button x:Name="Back" Content="Back" Opacity="0" VerticalAlignment="Center" Click="BackClicked" />
+                                </StackPanel>
                             </StackPanel>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Spacing="4">
-                            <Border x:Name="Heading" Height="38" />
-                            <TextBlock x:Name="Meta" Classes="caption" Opacity="0" Margin="0,0,0,10" />
-                            <StackPanel x:Name="Tracks" />
-                        </StackPanel>
-                    </Grid>
-                </presto:Modal>
-            </Grid>
-        </Border>
+                            <StackPanel Grid.Column="1" Spacing="4">
+                                <Border x:Name="Heading" Height="38" />
+                                <TextBlock x:Name="Meta" Classes="caption" Opacity="0" Margin="0,0,0,10" />
+                                <StackPanel x:Name="Tracks" />
+                            </StackPanel>
+                        </Grid>
+                    </presto:Modal>
+                </Grid>
+            </Border>
+        </ScrollViewer>
         <showcase:CodePanel x:Name="HowCode" Header="How it's built" IsExpanded="False" MaxHeight="280" />
     </StackPanel>
 </showcase:ShowcasePage>

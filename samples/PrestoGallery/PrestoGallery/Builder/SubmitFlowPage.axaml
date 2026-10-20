@@ -18,31 +18,29 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer>
-        <StackPanel Spacing="16">
-            <Border Classes="stage">
-                <!-- The face sits over the button rather than in it, so its centering never depends on the animated width. -->
-                <StackPanel Width="200" Spacing="24" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Grid x:Name="Field" Height="48">
-                        <Button x:Name="Submit" Classes="specimen" Width="200" Height="48" Padding="0"
-                                HorizontalAlignment="Center" Click="SubmitClicked" />
-                        <Grid x:Name="Face" IsHitTestVisible="False"
-                              TextElement.FontSize="15" TextElement.Foreground="{x:Static showcase:Palette.Ink}">
-                            <TextBlock x:Name="Label" Text="Send message" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            <Path x:Name="Spinner" Opacity="0" StrokeThickness="2.5" Data="M11,2 A9,9 0 1 1 2,11" />
-                            <Path x:Name="Tick" Width="20" Height="20" StrokeThickness="3" Data="{x:Static presto:Draws.Check}" />
-                            <Path x:Name="Cross" Width="20" Height="20" StrokeThickness="3" Data="{x:Static presto:Draws.Cross}" />
-                        </Grid>
+    <StackPanel Spacing="16">
+        <Border Classes="stage">
+            <!-- The face sits over the button rather than in it, so its centering never depends on the animated width. -->
+            <StackPanel Width="200" Spacing="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid x:Name="Field" Height="48">
+                    <Button x:Name="Submit" Classes="specimen" Width="200" Height="48" Padding="0"
+                            HorizontalAlignment="Center" Click="SubmitClicked" />
+                    <Grid x:Name="Face" IsHitTestVisible="False"
+                          TextElement.FontSize="15" TextElement.Foreground="{x:Static showcase:Palette.Ink}">
+                        <TextBlock x:Name="Label" Text="Send message" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Path x:Name="Spinner" Opacity="0" StrokeThickness="2.5" Data="M11,2 A9,9 0 1 1 2,11" />
+                        <Path x:Name="Tick" Width="20" Height="20" StrokeThickness="3" Data="{x:Static presto:Draws.Check}" />
+                        <Path x:Name="Cross" Width="20" Height="20" StrokeThickness="3" Data="{x:Static presto:Draws.Cross}" />
                     </Grid>
-                    <CheckBox x:Name="FailBox" Content="Fail the next request" HorizontalAlignment="Center" />
-                </StackPanel>
-            </Border>
+                </Grid>
+                <CheckBox x:Name="FailBox" Content="Fail the next request" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
 
-            <TextBlock Classes="caption" Text="The recipes: static builders, plus the library's Pulse, Shake and Confetti" />
-            <showcase:CodePanel x:Name="RecipesCode" Code="{x:Static showcase:Snippets.SubmitFlowRecipes}" />
+        <TextBlock Classes="caption" Text="The recipes: static builders, plus the library's Pulse, Shake and Confetti" />
+        <showcase:CodePanel x:Name="RecipesCode" Code="{x:Static showcase:Snippets.SubmitFlowRecipes}" />
 
-            <TextBlock Classes="caption" Text="The click handler awaits them in turn, and a Presto timer stands in for the request" />
-            <showcase:CodePanel x:Name="SendCode" Code="{x:Static showcase:Snippets.SubmitFlowSend}" />
-        </StackPanel>
-    </ScrollViewer>
+        <TextBlock Classes="caption" Text="The click handler awaits them in turn, and a Presto timer stands in for the request" />
+        <showcase:CodePanel x:Name="SendCode" Code="{x:Static showcase:Snippets.SubmitFlowSend}" />
+    </StackPanel>
 </showcase:ShowcasePage>

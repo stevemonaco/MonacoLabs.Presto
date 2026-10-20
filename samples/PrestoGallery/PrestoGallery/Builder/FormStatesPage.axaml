@@ -19,8 +19,8 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="20" />
-            <Setter Property="Width" Value="380" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="MaxWidth" Value="380" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <Style Selector="Border.badge">
@@ -37,51 +37,49 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer>
-        <StackPanel Spacing="16">
-            <TextBlock Classes="caption" Text="Submit without an @ to see Error, with one to see Success; typing again returns to Idle" />
-            <Border Classes="stage" MinHeight="300">
-                <!-- snippet: FormStatesCard -->
-                <Border Classes="form" presto:Motion.State="{Binding State}">
-                    <presto:Motion.States>
-                        <presto:MotionStates>
-                            <presto:MotionState When="Validating" Motion="{x:Static local:FormMotions.CardValidating}" />
-                            <presto:MotionState When="Error" Motion="{x:Static local:FormMotions.CardError}" />
-                            <presto:MotionState When="Success" Motion="{x:Static local:FormMotions.CardSuccess}" />
-                        </presto:MotionStates>
-                    </presto:Motion.States>
-                    <!-- snippet-skip -->
-                    <StackPanel Spacing="16">
-                        <StackPanel Orientation="Horizontal" Spacing="14">
-                            <!-- snippet: FormStatesBadge -->
-                            <Border Classes="badge" Background="{Binding Tint}" presto:Motion.State="{Binding State}">
-                                <presto:Motion.States>
-                                    <presto:MotionStates>
-                                        <presto:MotionState When="Idle" Motion="{x:Static local:FormMotions.BadgeIdle}" />
-                                        <presto:MotionState When="Validating" Motion="{x:Static local:FormMotions.BadgeValidating}" />
-                                        <presto:MotionState When="Error" Motion="{x:Static local:FormMotions.BadgeError}" />
-                                        <presto:MotionState When="Success" Motion="{x:Static local:FormMotions.BadgeSuccess}" />
-                                    </presto:MotionStates>
-                                </presto:Motion.States>
-                                <TextBlock Text="{Binding Glyph}" />
-                            </Border>
-                            <!-- /snippet -->
-                            <StackPanel VerticalAlignment="Center" Spacing="2">
-                                <TextBlock Text="Join the beta" FontSize="16" FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.Ink}" />
-                                <TextBlock Classes="caption" Text="{Binding Status}" />
-                            </StackPanel>
+    <StackPanel Spacing="16">
+        <TextBlock Classes="caption" Text="Submit without an @ to see Error, with one to see Success; typing again returns to Idle" />
+        <Border Classes="stage" MinHeight="300">
+            <!-- snippet: FormStatesCard -->
+            <Border Classes="form" presto:Motion.State="{Binding State}">
+                <presto:Motion.States>
+                    <presto:MotionStates>
+                        <presto:MotionState When="Validating" Motion="{x:Static local:FormMotions.CardValidating}" />
+                        <presto:MotionState When="Error" Motion="{x:Static local:FormMotions.CardError}" />
+                        <presto:MotionState When="Success" Motion="{x:Static local:FormMotions.CardSuccess}" />
+                    </presto:MotionStates>
+                </presto:Motion.States>
+                <!-- snippet-skip -->
+                <StackPanel Spacing="16">
+                    <StackPanel Orientation="Horizontal" Spacing="14">
+                        <!-- snippet: FormStatesBadge -->
+                        <Border Classes="badge" Background="{Binding Tint}" presto:Motion.State="{Binding State}">
+                            <presto:Motion.States>
+                                <presto:MotionStates>
+                                    <presto:MotionState When="Idle" Motion="{x:Static local:FormMotions.BadgeIdle}" />
+                                    <presto:MotionState When="Validating" Motion="{x:Static local:FormMotions.BadgeValidating}" />
+                                    <presto:MotionState When="Error" Motion="{x:Static local:FormMotions.BadgeError}" />
+                                    <presto:MotionState When="Success" Motion="{x:Static local:FormMotions.BadgeSuccess}" />
+                                </presto:MotionStates>
+                            </presto:Motion.States>
+                            <TextBlock Text="{Binding Glyph}" />
+                        </Border>
+                        <!-- /snippet -->
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Join the beta" FontSize="16" FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.Ink}" />
+                            <TextBlock Classes="caption" Text="{Binding Status}" />
                         </StackPanel>
-                        <TextBox Text="{Binding Email}" Watermark="you@example.com" />
-                        <Button Classes="specimen" Content="Submit" Command="{Binding SubmitCommand}"
-                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
                     </StackPanel>
-                    <!-- /snippet-skip -->
-                </Border>
-                <!-- /snippet -->
+                    <TextBox Text="{Binding Email}" Watermark="you@example.com" />
+                    <Button Classes="specimen" Content="Submit" Command="{Binding SubmitCommand}"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                </StackPanel>
+                <!-- /snippet-skip -->
             </Border>
+            <!-- /snippet -->
+        </Border>
 
-            <TextBlock Classes="caption" Text="Each view-model State is a bare-name condition on Motion.State; what it plays is a plain builder in FormMotions.cs" />
-            <showcase:CodeTabs x:Name="StatesCode" SelectedLanguage="Xaml" />
-        </StackPanel>
-    </ScrollViewer>
+        <TextBlock Classes="caption" Text="Each view-model State is a bare-name condition on Motion.State; what it plays is a plain builder in FormMotions.cs" />
+        <showcase:CodeTabs x:Name="StatesCode" SelectedLanguage="Xaml" />
+    </StackPanel>
 </showcase:ShowcasePage>

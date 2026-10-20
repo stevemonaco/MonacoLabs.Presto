@@ -26,17 +26,15 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer>
-        <StackPanel Spacing="12">
-            <Border Classes="stage" MinHeight="0">
-                <UniformGrid Columns="2" ColumnSpacing="16">
-                    <!-- snippet: ReorderLists -->
-                    <ListBox x:Name="DefaultLift" Classes="reorder" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder}" presto:Animate.ItemLayout="{presto:Reflow}" />
-                    <ListBox x:Name="StrongLift" Classes="reorder" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder Intensity=2}" presto:Animate.ItemLayout="{presto:Reflow}" />
-                    <!-- /snippet -->
-                </UniformGrid>
-            </Border>
-            <showcase:CodePanel Language="Xaml" Code="{x:Static showcase:Snippets.ReorderLists}" />
-        </StackPanel>
-    </ScrollViewer>
+    <StackPanel Spacing="12">
+        <Border Classes="stage" MinHeight="0">
+            <UniformGrid Columns="2" ColumnSpacing="16">
+                <!-- snippet: ReorderLists -->
+                <ListBox x:Name="DefaultLift" Classes="reorder" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder}" presto:Animate.ItemLayout="{presto:Reflow}" />
+                <ListBox x:Name="StrongLift" Classes="reorder" presto:Reorder.Enabled="True" presto:Reorder.Lift="{presto:Reorder Intensity=2}" presto:Animate.ItemLayout="{presto:Reflow}" />
+                <!-- /snippet -->
+            </UniformGrid>
+        </Border>
+        <showcase:CodePanel Language="Xaml" Code="{x:Static showcase:Snippets.ReorderLists}" />
+    </StackPanel>
 </showcase:ShowcasePage>

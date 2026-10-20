@@ -5,6 +5,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Threading;
 using MonacoLabs.Presto.Events;
 
@@ -162,6 +163,27 @@ public sealed class ScrollSmoothTests : BridgeTestBase
         window.MouseWheel(Inside, new Vector(0, -1));
 
         Assert.Equal(50, scroller.Offset.Y);
+    }
+
+    [AvaloniaFact]
+    public void AControlOrCommandNotchIsLeftForZoomableContent()
+    {
+        var stage = Show();
+        var (window, scroller, _, _) = stage;
+        stage.Panel.Background = Brushes.Transparent;
+        var zooms = 0;
+        stage.Panel.PointerWheelChanged += (_, e) =>
+        {
+            zooms++;
+            e.Handled = true;
+        };
+
+        window.MouseWheel(Inside, new Vector(0, -1), RawInputModifiers.Control);
+        window.MouseWheel(Inside, new Vector(0, -1), RawInputModifiers.Meta);
+        Frames.Advance(Ease + 100, 16);
+
+        Assert.Equal(2, zooms);
+        Assert.Equal(0, scroller.Offset.Y);
     }
 
     [AvaloniaFact]

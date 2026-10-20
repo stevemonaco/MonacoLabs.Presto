@@ -320,6 +320,8 @@ public static class Scroll
         private void HandleWheel(object? sender, PointerWheelEventArgs e)
         {
             if (Engine.Current.Defaults.ReducedMotion) return;
+            // Ctrl/Cmd+wheel is the zoom gesture; on the tunnel pass this would take it from zoomable content inside.
+            if ((e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Meta)) != 0) return;
             var delta = e.Delta;
             if (delta.X != Math.Round(delta.X) || delta.Y != Math.Round(delta.Y)) return;
             // Mirrors ScrollContentPresenter: Shift turns a vertical wheel horizontal.

@@ -16,95 +16,93 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer>
-        <StackPanel Spacing="16">
-            <Button Content="Replay" Click="Replay" HorizontalAlignment="Left" />
-            <TextBlock Classes="caption" TextWrapping="Wrap" Text="Use Presence (Arrive, Initial, Enter, Exit) for entrances and exits, and Animate.OnAttached for loops and timers tied to being on screen, such as the looping star below." />
-            <StackPanel x:Name="Demos" Spacing="32">
-                <StackPanel Spacing="12">
-                    <TextBlock Classes="caption" Text="{}{x:Static}: a fixed, named builder any view can reuse, written out in full" />
-                    <Border Classes="stage" MinHeight="140">
-                        <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <!-- snippet: XamlStatic -->
-                            <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
-                            <!-- /snippet -->
-                            <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
-                            <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
-                            <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
-                        </StackPanel>
-                    </Border>
-                    <showcase:CodeTabs x:Name="StaticCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlStatic}" CSharp="{x:Static showcase:Snippets.XamlFadeUp}" />
-                </StackPanel>
+    <StackPanel Spacing="16">
+        <Button Content="Replay" Click="Replay" HorizontalAlignment="Left" />
+        <TextBlock Classes="caption" TextWrapping="Wrap" Text="Use Presence (Arrive, Initial, Enter, Exit) for entrances and exits, and Animate.OnAttached for loops and timers tied to being on screen, such as the looping star below." />
+        <StackPanel x:Name="Demos" Spacing="32">
+            <StackPanel Spacing="12">
+                <TextBlock Classes="caption" Text="{}{x:Static}: a fixed, named builder any view can reuse, written out in full" />
+                <Border Classes="stage" MinHeight="140">
+                    <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <!-- snippet: XamlStatic -->
+                        <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
+                        <!-- /snippet -->
+                        <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
+                        <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
+                        <Border Classes="swatch" Width="64" Height="64" presto:Presence.Arrive="{x:Static local:XamlPage.FadeUp}" />
+                    </StackPanel>
+                </Border>
+                <showcase:CodeTabs x:Name="StaticCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlStatic}" CSharp="{x:Static showcase:Snippets.XamlFadeUp}" />
+            </StackPanel>
 
-                <StackPanel Spacing="12">
-                    <TextBlock Classes="caption" Text="Recipe markup extension: {presto:Fade} provides a fresh Recipes.FadeUp builder per element, parameterized in the markup" />
-                    <Border Classes="stage" MinHeight="0">
-                        <StackPanel Spacing="8">
-                            <!-- snippet: XamlExtension -->
-                            <TextBlock Classes="row" Text="Inbox" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=0}" />
-                            <TextBlock Classes="row" Text="Drafts" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=100}" />
-                            <TextBlock Classes="row" Text="Sent" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=200}" />
-                            <TextBlock Classes="row" Text="Archive" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=300}" />
-                            <!-- /snippet -->
-                        </StackPanel>
-                    </Border>
-                    <showcase:CodePanel x:Name="ExtensionCode" Language="Xaml" Code="{x:Static showcase:Snippets.XamlExtension}" />
-                </StackPanel>
+            <StackPanel Spacing="12">
+                <TextBlock Classes="caption" Text="Recipe markup extension: {presto:Fade} provides a fresh Recipes.FadeUp builder per element, parameterized in the markup" />
+                <Border Classes="stage" MinHeight="0">
+                    <StackPanel Spacing="8">
+                        <!-- snippet: XamlExtension -->
+                        <TextBlock Classes="row" Text="Inbox" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=0}" />
+                        <TextBlock Classes="row" Text="Drafts" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=100}" />
+                        <TextBlock Classes="row" Text="Sent" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=200}" />
+                        <TextBlock Classes="row" Text="Archive" presto:Presence.Arrive="{presto:Fade Direction=Up, Distance=48, Delay=300}" />
+                        <!-- /snippet -->
+                    </StackPanel>
+                </Border>
+                <showcase:CodePanel x:Name="ExtensionCode" Language="Xaml" Code="{x:Static showcase:Snippets.XamlExtension}" />
+            </StackPanel>
 
-                <StackPanel Spacing="12">
-                    <TextBlock Classes="caption" Text="Binding: view state picks the animation, and the element re-animates when it changes" />
-                    <Border Classes="stage" MinHeight="160">
-                        <StackPanel Spacing="24" HorizontalAlignment="Center" VerticalAlignment="Center" x:DataType="local:EmphasisViewModel">
-                            <StackPanel.DataContext>
-                                <local:EmphasisViewModel />
-                            </StackPanel.DataContext>
-                            <!-- snippet: XamlBinding -->
-                            <ToggleSwitch IsChecked="{Binding IsAlert}" OffContent="Idle" OnContent="Alert" />
-                            <PathIcon Data="{StaticResource StarIcon}" Width="48" Height="48" Foreground="{x:Static showcase:Palette.Amber}" presto:Animate.OnAttached="{Binding Emphasis}" />
-                            <!-- /snippet -->
-                        </StackPanel>
-                    </Border>
-                    <showcase:CodeTabs x:Name="BindingCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlBinding}" CSharp="{x:Static showcase:Snippets.XamlEmphasis}" />
-                </StackPanel>
+            <StackPanel Spacing="12">
+                <TextBlock Classes="caption" Text="Binding: view state picks the animation, and the element re-animates when it changes" />
+                <Border Classes="stage" MinHeight="160">
+                    <StackPanel Spacing="24" HorizontalAlignment="Center" VerticalAlignment="Center" x:DataType="local:EmphasisViewModel">
+                        <StackPanel.DataContext>
+                            <local:EmphasisViewModel />
+                        </StackPanel.DataContext>
+                        <!-- snippet: XamlBinding -->
+                        <ToggleSwitch IsChecked="{Binding IsAlert}" OffContent="Idle" OnContent="Alert" />
+                        <PathIcon Data="{StaticResource StarIcon}" Width="48" Height="48" Foreground="{x:Static showcase:Palette.Amber}" presto:Animate.OnAttached="{Binding Emphasis}" />
+                        <!-- /snippet -->
+                    </StackPanel>
+                </Border>
+                <showcase:CodeTabs x:Name="BindingCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlBinding}" CSharp="{x:Static showcase:Snippets.XamlEmphasis}" />
+            </StackPanel>
 
-                <StackPanel Spacing="12">
-                    <TextBlock Classes="caption" TextWrapping="Wrap" Text="Cues: the view model raises a Cue and the view picks what it looks like. Save with no @ to shake the field, save a valid address for a toast, or press Cheer for a burst." />
-                    <Border Classes="stage" MinHeight="200">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" x:DataType="local:CuesViewModel">
-                            <Grid.DataContext>
-                                <local:CuesViewModel />
-                            </Grid.DataContext>
-                            <!-- snippet: XamlCues -->
-                            <StackPanel Spacing="12" VerticalAlignment="Center">
-                                <TextBox x:Name="CueEmail" Text="{Binding Email}" PlaceholderText="Email" Width="240" HorizontalAlignment="Left"
-                                         presto:Animate.Cue="{Binding ValidationFailed}" presto:Animate.OnCue="{presto:Shake}" />
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button x:Name="CueSave" Content="Save" Command="{Binding SubmitCommand}" />
-                                    <Button x:Name="CueCheer" Content="Cheer" Command="{Binding CheerCommand}" />
-                                    <PathIcon Data="{StaticResource StarIcon}" Width="32" Height="32" Margin="16,0" Foreground="{x:Static showcase:Palette.Amber}"
-                                              presto:Animate.Cue="{Binding Celebrate}" presto:Animate.DoOnCue="{presto:Burst}" />
-                                </StackPanel>
+            <StackPanel Spacing="12">
+                <TextBlock Classes="caption" TextWrapping="Wrap" Text="Cues: the view model raises a Cue and the view picks what it looks like. Save with no @ to shake the field, save a valid address for a toast, or press Cheer for a burst." />
+                <Border Classes="stage" MinHeight="200">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" x:DataType="local:CuesViewModel">
+                        <Grid.DataContext>
+                            <local:CuesViewModel />
+                        </Grid.DataContext>
+                        <!-- snippet: XamlCues -->
+                        <StackPanel Spacing="12" VerticalAlignment="Center">
+                            <TextBox x:Name="CueEmail" Text="{Binding Email}" PlaceholderText="Email" Width="240" HorizontalAlignment="Left"
+                                     presto:Animate.Cue="{Binding ValidationFailed}" presto:Animate.OnCue="{presto:Shake}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button x:Name="CueSave" Content="Save" Command="{Binding SubmitCommand}" />
+                                <Button x:Name="CueCheer" Content="Cheer" Command="{Binding CheerCommand}" />
+                                <PathIcon Data="{StaticResource StarIcon}" Width="32" Height="32" Margin="16,0" Foreground="{x:Static showcase:Palette.Amber}"
+                                          presto:Animate.Cue="{Binding Celebrate}" presto:Animate.DoOnCue="{presto:Burst}" />
                             </StackPanel>
-                            <presto:ToastHost x:Name="CueToasts" Grid.Column="1" Width="260" VerticalAlignment="Top"
-                                              presto:Animate.Cue="{Binding Saved}" presto:Animate.DoOnCue="{presto:ShowToast Duration=3000}">
-                                <presto:ToastHost.ItemTemplate>
-                                    <DataTemplate x:DataType="sys:String">
-                                        <Border Background="{x:Static showcase:Palette.SurfaceHigh}" CornerRadius="8" Margin="0,0,0,8"
-                                                presto:Presence.Arrive="{presto:Slide Edge=Right, Distance=60}">
-                                            <DockPanel>
-                                                <Button DockPanel.Dock="Right" Content="✕" Background="Transparent" presto:ToastHost.DismissOnClick="True" />
-                                                <TextBlock Text="{Binding}" Foreground="{x:Static showcase:Palette.Ink}" VerticalAlignment="Center" Margin="12,8" />
-                                            </DockPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </presto:ToastHost.ItemTemplate>
-                            </presto:ToastHost>
-                            <!-- /snippet -->
-                        </Grid>
-                    </Border>
-                    <showcase:CodeTabs x:Name="CuesCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlCues}" CSharp="{x:Static showcase:Snippets.XamlCuesViewModel}" />
-                </StackPanel>
+                        </StackPanel>
+                        <presto:ToastHost x:Name="CueToasts" Grid.Column="1" Width="260" VerticalAlignment="Top"
+                                          presto:Animate.Cue="{Binding Saved}" presto:Animate.DoOnCue="{presto:ShowToast Duration=3000}">
+                            <presto:ToastHost.ItemTemplate>
+                                <DataTemplate x:DataType="sys:String">
+                                    <Border Background="{x:Static showcase:Palette.SurfaceHigh}" CornerRadius="8" Margin="0,0,0,8"
+                                            presto:Presence.Arrive="{presto:Slide Edge=Right, Distance=60}">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Content="✕" Background="Transparent" presto:ToastHost.DismissOnClick="True" />
+                                            <TextBlock Text="{Binding}" Foreground="{x:Static showcase:Palette.Ink}" VerticalAlignment="Center" Margin="12,8" />
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </presto:ToastHost.ItemTemplate>
+                        </presto:ToastHost>
+                        <!-- /snippet -->
+                    </Grid>
+                </Border>
+                <showcase:CodeTabs x:Name="CuesCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.XamlCues}" CSharp="{x:Static showcase:Snippets.XamlCuesViewModel}" />
             </StackPanel>
         </StackPanel>
-    </ScrollViewer>
+    </StackPanel>
 </showcase:ShowcasePage>

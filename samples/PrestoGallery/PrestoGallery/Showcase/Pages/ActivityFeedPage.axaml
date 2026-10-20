@@ -6,7 +6,7 @@
                        xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
                        xmlns:local="using:PrestoGallery.Showcase.Pages"
                        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
-                       x:Class="PrestoGallery.Showcase.Pages.ActivityFeedPage"
+                       x:Class="PrestoGallery.Showcase.Pages.ActivityFeedPage" FillsViewport="True"
                        x:DataType="local:ActivityFeedViewModel">
     <showcase:ShowcasePage.DataContext>
         <local:ActivityFeedViewModel />

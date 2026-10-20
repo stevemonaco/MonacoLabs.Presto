@@ -11,97 +11,106 @@
     <showcase:ShowcasePage.DataContext>
         <local:ValueDrivenViewModel />
     </showcase:ShowcasePage.DataContext>
-    <ScrollViewer>
-        <StackPanel Spacing="12">
-            <WrapPanel ItemSpacing="12" LineSpacing="8">
-                <Slider Width="240" Minimum="0" Maximum="100" Value="{Binding Level}" />
-                <Button Content="−" Command="{Binding LowerCommand}" VerticalAlignment="Center" />
-                <Button Content="+" Command="{Binding RaiseCommand}" VerticalAlignment="Center" />
-                <Button Content="Random" Command="{Binding RandomizeCommand}" VerticalAlignment="Center" />
-                <TextBlock Classes="caption" Text="{Binding Level, StringFormat='Level {0:0}'}" VerticalAlignment="Center" />
-            </WrapPanel>
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="UniformGrid#Demos">
+            <Setter Property="Columns" Value="2" />
+        </Style>
+        <ContainerQuery Name="page" Query="max-width:599">
+            <Style Selector="UniformGrid#Demos">
+                <Setter Property="Columns" Value="1" />
+            </Style>
+        </ContainerQuery>
+    </showcase:ShowcasePage.Styles>
 
-            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="16" RowSpacing="16">
-                <StackPanel Spacing="8">
-                    <TextBlock Classes="caption" Text="A bar's Width, sprung to each new level" />
-                    <Border Classes="stage short">
-                        <Border Width="300" Height="28" CornerRadius="6" HorizontalAlignment="Left" VerticalAlignment="Center"
-                                Background="{x:Static showcase:Palette.SurfaceHigh}">
-                            <!-- snippet: ValueDrivenBar -->
-                            <Border x:Name="Bar" HorizontalAlignment="Left" CornerRadius="6" Background="{x:Static showcase:Palette.Accent}"
-                                    Width="{presto:Follow {Binding BarWidth}, Spring=Snappy}" />
-                            <!-- /snippet -->
-                        </Border>
+    <StackPanel Container.Name="page" Container.Sizing="Width" Spacing="12">
+        <WrapPanel ItemSpacing="12" LineSpacing="8">
+            <Slider Width="240" Minimum="0" Maximum="100" Value="{Binding Level}" />
+            <Button Content="−" Command="{Binding LowerCommand}" VerticalAlignment="Center" />
+            <Button Content="+" Command="{Binding RaiseCommand}" VerticalAlignment="Center" />
+            <Button Content="Random" Command="{Binding RandomizeCommand}" VerticalAlignment="Center" />
+            <TextBlock Classes="caption" Text="{Binding Level, StringFormat='Level {0:0}'}" VerticalAlignment="Center" />
+        </WrapPanel>
+
+        <UniformGrid x:Name="Demos" ColumnSpacing="16" RowSpacing="16">
+            <StackPanel Spacing="8">
+                <TextBlock Classes="caption" Text="A bar's Width, sprung to each new level" />
+                <Border Classes="stage short">
+                    <Border Width="300" Height="28" CornerRadius="6" HorizontalAlignment="Left" VerticalAlignment="Center"
+                            Background="{x:Static showcase:Palette.SurfaceHigh}">
+                        <!-- snippet: ValueDrivenBar -->
+                        <Border x:Name="Bar" HorizontalAlignment="Left" CornerRadius="6" Background="{x:Static showcase:Palette.Accent}"
+                                Width="{presto:Follow {Binding BarWidth}, Spring=Snappy}" />
+                        <!-- /snippet -->
                     </Border>
-                    <showcase:CodePanel x:Name="BarCode" Language="Xaml" Code="{x:Static showcase:Snippets.ValueDrivenBar}" />
-                </StackPanel>
+                </Border>
+                <showcase:CodePanel x:Name="BarCode" Language="Xaml" Code="{x:Static showcase:Snippets.ValueDrivenBar}" />
+            </StackPanel>
 
-                <StackPanel Grid.Column="1" Spacing="8">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Classes="caption" Text="A gauge on Follow.Rotate, retimed by the picker" TextWrapping="Wrap" VerticalAlignment="Center" />
-                        <ComboBox Grid.Column="1" Width="160" ItemsSource="{Binding Timings}" SelectedIndex="{Binding TimingIndex}" />
+            <StackPanel Spacing="8">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="caption" Text="A gauge on Follow.Rotate, retimed by the picker" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <ComboBox Grid.Column="1" Width="160" ItemsSource="{Binding Timings}" SelectedIndex="{Binding TimingIndex}" />
+                </Grid>
+                <Border Classes="stage short">
+                    <Grid Width="220" Height="120">
+                        <Path Data="M 10,110 A 100,100 0 0 1 210,110" Stroke="{x:Static showcase:Palette.Border}" StrokeThickness="8" StrokeLineCap="Round" />
+                        <!-- snippet: ValueDrivenGauge -->
+                        <Border x:Name="Needle" Width="4" Height="96" Margin="0,0,0,10" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                                Background="{x:Static showcase:Palette.Amber}" RenderTransformOrigin="50%,100%"
+                                presto:Follow.Rotate="{Binding Angle}" presto:Follow.Timing="{Binding Timing}" />
+                        <!-- /snippet -->
                     </Grid>
-                    <Border Classes="stage short">
-                        <Grid Width="220" Height="120">
-                            <Path Data="M 10,110 A 100,100 0 0 1 210,110" Stroke="{x:Static showcase:Palette.Border}" StrokeThickness="8" StrokeLineCap="Round" />
-                            <!-- snippet: ValueDrivenGauge -->
-                            <Border x:Name="Needle" Width="4" Height="96" Margin="0,0,0,10" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Bottom"
-                                    Background="{x:Static showcase:Palette.Amber}" RenderTransformOrigin="50%,100%"
-                                    presto:Follow.Rotate="{Binding Angle}" presto:Follow.Timing="{Binding Timing}" />
-                            <!-- /snippet -->
-                        </Grid>
-                    </Border>
-                    <showcase:CodeTabs x:Name="GaugeCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.ValueDrivenGauge}" CSharp="{Binding TimingCode}" />
-                </StackPanel>
+                </Border>
+                <showcase:CodeTabs x:Name="GaugeCode" SelectedLanguage="Xaml" Xaml="{x:Static showcase:Snippets.ValueDrivenGauge}" CSharp="{Binding TimingCode}" />
+            </StackPanel>
 
-                <StackPanel Grid.Row="1" Spacing="8">
-                    <TextBlock Classes="caption" Text="A swatch's Background brush, eased channel by channel on the default spring" />
-                    <Border Classes="stage short">
-                        <!-- snippet: ValueDrivenSwatch -->
-                        <Border x:Name="Swatch" Width="160" Height="80" CornerRadius="12" HorizontalAlignment="Left" VerticalAlignment="Center"
-                                Background="{presto:Follow {Binding Fill}}" />
-                        <!-- /snippet -->
-                    </Border>
-                    <showcase:CodePanel x:Name="SwatchCode" Language="Xaml" Code="{x:Static showcase:Snippets.ValueDrivenSwatch}" />
-                </StackPanel>
+            <StackPanel Spacing="8">
+                <TextBlock Classes="caption" Text="A swatch's Background brush, eased channel by channel on the default spring" />
+                <Border Classes="stage short">
+                    <!-- snippet: ValueDrivenSwatch -->
+                    <Border x:Name="Swatch" Width="160" Height="80" CornerRadius="12" HorizontalAlignment="Left" VerticalAlignment="Center"
+                            Background="{presto:Follow {Binding Fill}}" />
+                    <!-- /snippet -->
+                </Border>
+                <showcase:CodePanel x:Name="SwatchCode" Language="Xaml" Code="{x:Static showcase:Snippets.ValueDrivenSwatch}" />
+            </StackPanel>
 
-                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="8">
-                    <TextBlock Classes="caption" Text="A card's Margin, a Thickness on a bouncy spring" />
-                    <Border Classes="stage short">
-                        <!-- snippet: ValueDrivenCard -->
-                        <Border x:Name="Card" Classes="specimen" Margin="{presto:Follow {Binding CardMargin}, Spring=Bouncy}">
-                        <!-- /snippet -->
-                            <TextBlock Text="Card" />
-                        </Border>
+            <StackPanel Spacing="8">
+                <TextBlock Classes="caption" Text="A card's Margin, a Thickness on a bouncy spring" />
+                <Border Classes="stage short">
+                    <!-- snippet: ValueDrivenCard -->
+                    <Border x:Name="Card" Classes="specimen" Margin="{presto:Follow {Binding CardMargin}, Spring=Bouncy}">
+                    <!-- /snippet -->
+                        <TextBlock Text="Card" />
                     </Border>
-                    <showcase:CodePanel x:Name="CardCode" Language="Xaml" Code="{x:Static showcase:Snippets.ValueDrivenCard}" />
-                </StackPanel>
-            </Grid>
+                </Border>
+                <showcase:CodePanel x:Name="CardCode" Language="Xaml" Code="{x:Static showcase:Snippets.ValueDrivenCard}" />
+            </StackPanel>
+        </UniformGrid>
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="200 rows in a virtualized ListBox whose progress changes every 1.2 s. Changes ease; a shuffled, replaced or newly scrolled-in row shows a new item, so it snaps instead of sweeping." />
-            <Border Classes="stage short">
-                <DockPanel>
-                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
-                        <Button Content="Shuffle" Command="{Binding ShuffleCommand}" />
-                        <Button Content="Replace" Command="{Binding ReplaceCommand}" />
-                    </StackPanel>
-                    <ListBox x:Name="RowList" Height="280" ItemsSource="{Binding Rows}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="local:ValueDrivenRow">
-                                <Grid ColumnDefinitions="90,*,48" ColumnSpacing="12">
-                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
-                                    <!-- snippet: ValueDrivenRow -->
-                                    <ProgressBar Grid.Column="1" Maximum="100" Value="{presto:Follow {Binding Progress}}" />
-                                    <!-- /snippet -->
-                                    <TextBlock Grid.Column="2" Text="{Binding Progress, StringFormat='{}{0:0}%'}" VerticalAlignment="Center" />
-                                </Grid>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </DockPanel>
-            </Border>
-            <showcase:CodePanel x:Name="RowCode" Language="Xaml" Code="{x:Static showcase:Snippets.ValueDrivenRow}" />
-        </StackPanel>
-    </ScrollViewer>
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="200 rows in a virtualized ListBox whose progress changes every 1.2 s. Changes ease; a shuffled, replaced or newly scrolled-in row shows a new item, so it snaps instead of sweeping." />
+        <Border Classes="stage short">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+                    <Button Content="Shuffle" Command="{Binding ShuffleCommand}" />
+                    <Button Content="Replace" Command="{Binding ReplaceCommand}" />
+                </StackPanel>
+                <ListBox x:Name="RowList" Height="280" ItemsSource="{Binding Rows}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="local:ValueDrivenRow">
+                            <Grid ColumnDefinitions="90,*,48" ColumnSpacing="12">
+                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                <!-- snippet: ValueDrivenRow -->
+                                <ProgressBar Grid.Column="1" Maximum="100" Value="{presto:Follow {Binding Progress}}" />
+                                <!-- /snippet -->
+                                <TextBlock Grid.Column="2" Text="{Binding Progress, StringFormat='{}{0:0}%'}" VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+        <showcase:CodePanel x:Name="RowCode" Language="Xaml" Code="{x:Static showcase:Snippets.ValueDrivenRow}" />
+    </StackPanel>
 </showcase:ShowcasePage>

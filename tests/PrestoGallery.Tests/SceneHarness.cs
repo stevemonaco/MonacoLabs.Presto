@@ -14,6 +14,7 @@ using Avalonia.VisualTree;
 using MonacoLabs.Presto;
 using MonacoLabs.Presto.Compositor;
 using MonacoLabs.Presto.Tests;
+using PrestoGallery.Showcase;
 
 namespace PrestoGallery.Tests;
 
@@ -32,10 +33,20 @@ internal static class SceneHarness
     public static Window Show(Control content, double width, double height, int frames = 1)
     {
         TestFrames.Install();
-        var window = new Window { Content = content, Width = width, Height = height };
+        var window = new Window { Content = Hosted(content, height), Width = width, Height = height };
         window.Show();
         TestFrames.Tick(frames);
         return window;
+    }
+
+    // A gallery page sits as MainView hosts it: in a vertical scroller and at least the viewport tall, unless it fills the viewport.
+    private static Control Hosted(Control content, double height)
+    {
+        if (content is not UserControl || content.GetType().Namespace is not ("PrestoGallery.Pages" or "PrestoGallery.Builder" or "PrestoGallery.Showcase.Pages"))
+            return content;
+        if (content is ShowcasePage { FillsViewport: true }) return content;
+        content.MinHeight = height;
+        return new ScrollViewer { Content = content, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
     }
 
     /// <inheritdoc cref="Show(Control, double, double, int)"/>

@@ -55,9 +55,12 @@ public static class TempoMotion
         .Delay(Presto.Stagger(40))
         .WhenReduced(reduced => reduced.Opacity(from: 0).Duration(240).Delay(0));
 
-    /// <summary>A leaving row's ghost, faded early so it is mostly gone before the rows easing into its gap reach it (BRIDGE-PRESENCE-EXIT).</summary>
+    /// <summary>
+    /// A leaving row's ghost, faded early and all at once so the batch is mostly gone before the rows easing into its gaps reach it
+    /// (BRIDGE-PRESENCE-EXIT); only the slide is staggered.
+    /// </summary>
     public static readonly AnimationBuilder RowExit = Presto.Build()
-        .Opacity(0, duration: 120, ease: Eases.OutQuad)
+        .Opacity(0, duration: 120, delay: 0, ease: Eases.OutQuad)
         .X(-24)
         .Duration(220)
         .Ease(Eases.InCubic)

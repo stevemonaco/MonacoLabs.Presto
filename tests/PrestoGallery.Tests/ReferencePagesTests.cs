@@ -864,13 +864,14 @@ public sealed class ReferencePagesTests
     {
         var page = new TimerPage();
         var window = SceneHarness.Show(page, 900, 600, frames: 10);
+        var host = window.Content;
         var currentTime = page.GetControl<TextBlock>("CurrentTimeText");
         window.Content = null;
         var stopped = currentTime.Text;
         TestFrames.Tick(10);
         Assert.Equal(stopped, currentTime.Text);
 
-        window.Content = page;
+        window.Content = host;
         TestFrames.Tick(10);
         Assert.InRange(double.Parse(currentTime.Text!, CultureInfo.InvariantCulture), 1, 200);
 

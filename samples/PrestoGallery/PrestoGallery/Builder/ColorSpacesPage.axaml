@@ -38,12 +38,12 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer>
-        <StackPanel Spacing="16">
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Hue cycle: the strip is each whole path and the curve its OKLCH lightness; the playhead marks where both are now. Both start and end on pure red. RGB keyframes swing from dark blue to bright yellow; an OKLCH full turn from the same red keeps its lightness, trading chroma where sRGB runs out." />
-            <Border Classes="stage">
-                <StackPanel Spacing="20" HorizontalAlignment="Center" VerticalAlignment="Center">
+    <StackPanel Spacing="16">
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="Hue cycle: the strip is each whole path and the curve its OKLCH lightness; the playhead marks where both are now. Both start and end on pure red. RGB keyframes swing from dark blue to bright yellow; an OKLCH full turn from the same red keeps its lightness, trading chroma where sRGB runs out." />
+        <Border Classes="stage">
+            <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Spacing="20">
                     <StackPanel Orientation="Horizontal" Spacing="20">
                         <StackPanel Spacing="6">
                             <Border x:Name="RgbGlow" Classes="glow" Background="#ff0000">
@@ -63,16 +63,16 @@
                         <Canvas x:Name="OklchTrack" />
                     </StackPanel>
                 </StackPanel>
-            </Border>
-            <showcase:CodePanel x:Name="HueCode" />
+            </Viewbox>
+        </Border>
+        <showcase:CodePanel x:Name="HueCode" />
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Status flip: the same flip in every space at once, each row with its whole path. Default is the renderer's own blend (squared channels, a gamma-2 stand-in for LinearSrgb). Straight lines from blue to amber dip through gray; OKLCH goes around the hue wheel and stays saturated." />
-            <Button x:Name="NextButton" Content="Next status" Click="NextStatus" HorizontalAlignment="Left" />
-            <Border Classes="stage">
-                <StackPanel x:Name="PillRows" Spacing="12" VerticalAlignment="Center" />
-            </Border>
-            <showcase:CodePanel x:Name="StatusCode" />
-        </StackPanel>
-    </ScrollViewer>
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="Status flip: the same flip in every space at once, each row with its whole path. Default is the renderer's own blend (squared channels, a gamma-2 stand-in for LinearSrgb). Straight lines from blue to amber dip through gray; OKLCH goes around the hue wheel and stays saturated." />
+        <Button x:Name="NextButton" Content="Next status" Click="NextStatus" HorizontalAlignment="Left" />
+        <Border Classes="stage">
+            <StackPanel x:Name="PillRows" Spacing="12" VerticalAlignment="Center" />
+        </Border>
+        <showcase:CodePanel x:Name="StatusCode" />
+    </StackPanel>
 </showcase:ShowcasePage>

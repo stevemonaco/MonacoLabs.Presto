@@ -37,55 +37,58 @@
         <!-- /snippet -->
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer>
-        <StackPanel Spacing="16">
-            <Border Classes="stage">
-                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="20" Margin="24" VerticalAlignment="Top">
-                    <Border Classes="surface" presto:Animate.ContentSize="{presto:Reflow}">
-                        <StackPanel Spacing="10">
-                            <ToggleSwitch x:Name="HoldShown" IsChecked="True" OnContent="Hold: shown" OffContent="Hold: hidden" />
-                            <!-- snippet: VisibilityHoldCard -->
-                            <Border x:Name="HoldCard" Classes="card" IsVisible="{Binding #HoldShown.IsChecked}"
-                                    presto:Presence.Enter="{presto:Fade Direction=Up, Distance=16}"
-                                    presto:Presence.Exit="{presto:Fade Direction=Down, Distance=16}">
-                                <TextBlock Text="Held while it exits" />
-                            </Border>
-                            <!-- /snippet -->
-                            <TextBlock Classes="caption" Text="Below the card" presto:Animate.Layout="{presto:Reflow}" />
-                        </StackPanel>
-                    </Border>
-
-                    <Border Grid.Column="1" Classes="surface" presto:Animate.ContentSize="{presto:Reflow}">
-                        <StackPanel Spacing="10">
-                            <ToggleSwitch x:Name="GhostShown" IsChecked="True" OnContent="Ghost: shown" OffContent="Ghost: hidden" />
-                            <!-- snippet: VisibilityGhostCard -->
-                            <Border x:Name="GhostCard" Classes="card" IsVisible="{Binding #GhostShown.IsChecked}"
-                                    presto:Presence.HideMode="Ghost"
-                                    presto:Presence.Enter="{presto:Fade Direction=Up, Distance=16}"
-                                    presto:Presence.Exit="{presto:Fade Direction=Down, Distance=16}">
-                                <TextBlock Text="Ghosted while it exits" />
-                            </Border>
-                            <!-- /snippet -->
-                            <TextBlock Classes="caption" Text="Below the card" presto:Animate.Layout="{presto:Reflow}" />
-                        </StackPanel>
-                    </Border>
-
-                    <StackPanel Grid.Column="2" Spacing="8">
-                        <TextBlock Classes="caption" Text="Moments, newest first" />
-                        <showcase:MomentLog x:Name="Moments" />
+    <StackPanel Spacing="16">
+        <Border Classes="stage">
+            <showcase:SplitPanel Widths="Auto,Auto,*" Spacing="20" Breakpoint="640" Margin="24" VerticalAlignment="Top">
+                <Border Classes="surface" presto:Animate.ContentSize="{presto:Reflow}">
+                    <StackPanel Spacing="10">
+                        <ToggleSwitch x:Name="HoldShown" IsChecked="True" OnContent="Hold: shown" OffContent="Hold: hidden" />
+                        <!-- snippet: VisibilityHoldCard -->
+                        <Border x:Name="HoldCard" Classes="card" IsVisible="{Binding #HoldShown.IsChecked}"
+                                presto:Presence.Enter="{presto:Fade Direction=Up, Distance=16}"
+                                presto:Presence.Exit="{presto:Fade Direction=Down, Distance=16}">
+                            <TextBlock Text="Held while it exits" />
+                        </Border>
+                        <!-- /snippet -->
+                        <TextBlock Classes="caption" Text="Below the card" presto:Animate.Layout="{presto:Reflow}" />
                     </StackPanel>
-                </Grid>
-            </Border>
+                </Border>
 
-            <showcase:CodePanel x:Name="CardCode" Language="Xaml" />
+                <Border Classes="surface" presto:Animate.ContentSize="{presto:Reflow}">
+                    <StackPanel Spacing="10">
+                        <ToggleSwitch x:Name="GhostShown" IsChecked="True" OnContent="Ghost: shown" OffContent="Ghost: hidden" />
+                        <!-- snippet: VisibilityGhostCard -->
+                        <Border x:Name="GhostCard" Classes="card" IsVisible="{Binding #GhostShown.IsChecked}"
+                                presto:Presence.HideMode="Ghost"
+                                presto:Presence.Enter="{presto:Fade Direction=Up, Distance=16}"
+                                presto:Presence.Exit="{presto:Fade Direction=Down, Distance=16}">
+                            <TextBlock Text="Ghosted while it exits" />
+                        </Border>
+                        <!-- /snippet -->
+                        <TextBlock Classes="caption" Text="Below the card" presto:Animate.Layout="{presto:Reflow}" />
+                    </StackPanel>
+                </Border>
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Each card's IsVisible is bound to its switch, and nothing else knows it animates. Turning a switch off is a Hide: under the default Presence.HideMode, Hold, the card stays visible at Animation priority while its Exit plays on the live element, keeping its slot, and only then shows the bound false, so the caption below eases up afterwards. With HideMode=&quot;Ghost&quot; the layout closes at once and the exit plays on a snapshot instead. Turning it on is a Show and plays Enter; turn a held card back on mid-exit and the exit plays back from where it stands. The log is written by each builder's OnBegin, so it records what Presence decided." />
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="caption" Text="Moments, newest first" />
+                    <showcase:MomentLog x:Name="Moments" />
+                </StackPanel>
+            </showcase:SplitPanel>
+        </Border>
 
-            <Border Classes="stage">
+        <showcase:CodePanel x:Name="CardCode" Language="Xaml" />
+
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="Each card's IsVisible is bound to its switch, and nothing else knows it animates. Turning a switch off is a Hide: under the default Presence.HideMode, Hold, the card stays visible at Animation priority while its Exit plays on the live element, keeping its slot, and only then shows the bound false, so the caption below eases up afterwards. With HideMode=&quot;Ghost&quot; the layout closes at once and the exit plays on a snapshot instead. Turning it on is a Show and plays Enter; turn a held card back on mid-exit and the exit plays back from where it stands. The log is written by each builder's OnBegin, so it records what Presence decided." />
+
+        <Border Classes="stage">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition MaxWidth="408" />
+                </Grid.ColumnDefinitions>
                 <!-- snippet: VisibilitySettings -->
-                <Expander x:Name="Settings" Classes="settings" Header="Notification settings" Width="360" Margin="24"
-                          VerticalAlignment="Top" HorizontalAlignment="Left">
+                <Expander x:Name="Settings" Classes="settings" Header="Notification settings" Margin="24"
+                          VerticalAlignment="Top" HorizontalAlignment="Stretch">
                     <StackPanel>
                         <Border Classes="setting"><ToggleSwitch Content="Email digests" IsChecked="True" /></Border>
                         <Border Classes="setting"><ToggleSwitch Content="Mentions" IsChecked="True" /></Border>
@@ -94,12 +97,12 @@
                     </StackPanel>
                 </Expander>
                 <!-- /snippet -->
-            </Border>
+            </Grid>
+        </Border>
 
-            <showcase:CodePanel x:Name="SettingsCode" Language="Xaml" />
+        <showcase:CodePanel x:Name="SettingsCode" Language="Xaml" />
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Fluent's Expander collapses by hiding its template's ExpanderContent border, so its rows never detach and Presence.Enter alone would never fire for them again. Presence.EnterOnShow on that border, set through a /template/ style, replays the entrances of the rows it reveals each time it is shown, as one batch in visual-tree order, so the Fade's Stagger cascades them. The gallery's own sidebar does the same on each section's ItemsPresenter." />
-        </StackPanel>
-    </ScrollViewer>
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="Fluent's Expander collapses by hiding its template's ExpanderContent border, so its rows never detach and Presence.Enter alone would never fire for them again. Presence.EnterOnShow on that border, set through a /template/ style, replays the entrances of the rows it reveals each time it is shown, as one batch in visual-tree order, so the Fade's Stagger cascades them. The gallery's own sidebar does the same on each section's ItemsPresenter." />
+    </StackPanel>
 </showcase:ShowcasePage>

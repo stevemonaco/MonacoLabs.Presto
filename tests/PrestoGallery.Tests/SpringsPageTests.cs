@@ -315,7 +315,7 @@ public sealed class SpringsPageTests
             var page = window.GetLogicalDescendants().OfType<ShowcasePage>().Single(page => page.GetType() == type);
             if (page is EasesPage)
             {
-                var line = page.GetControl<StackPanel>("SpringsLine");
+                var line = page.GetControl<Panel>("SpringsLine");
                 Assert.False(line.IsVisible);
                 while (!line.IsVisible) page.GetControl<ComboBox>("EaseBox").SelectedIndex++;
             }

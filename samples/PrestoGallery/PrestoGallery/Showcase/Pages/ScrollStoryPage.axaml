@@ -5,7 +5,7 @@
                        xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
                        xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
                        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="720"
-                       x:Class="PrestoGallery.Showcase.Pages.ScrollStoryPage"
+                       x:Class="PrestoGallery.Showcase.Pages.ScrollStoryPage" FillsViewport="True"
                        SizeChanged="Remeasure">
     <showcase:ShowcasePage.Styles>
         <Style Selector="Border.stage">
@@ -102,7 +102,7 @@
                 <TextBlock Classes="caption" TextWrapping="Wrap"
                            Text="The stage below is pinned: Pin = true holds it in the middle of the viewport for 960px of scroll while the strip is scrubbed, PinSpacing pushes what follows down by the same 960px, and Snap = ScrollSnap.Labels settles the strip on a panel once scrolling stops." />
 
-                <Border x:Name="PinStage" Classes="stage" Width="640" ClipToBounds="True" HorizontalAlignment="Center">
+                <Border x:Name="PinStage" Classes="stage" MaxWidth="640" ClipToBounds="True">
                     <Grid RowDefinitions="Auto,*" RowSpacing="14">
                         <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
                             <TextBlock Grid.Column="0" Classes="eyebrow showcase" Text="PINNED · SCRUBBED BY SCROLL" VerticalAlignment="Center" />
@@ -110,7 +110,7 @@
                             <TextBlock Grid.Column="2" x:Name="PinNumber" Classes="readout" FontSize="20" Text="0" />
                             <TextBlock Grid.Column="3" Classes="caption" Text="%" VerticalAlignment="Bottom" Margin="0,0,0,3" />
                         </Grid>
-                        <StackPanel Grid.Row="1" x:Name="PinStrip" Orientation="Horizontal" Spacing="14" HorizontalAlignment="Left" />
+                        <StackPanel Grid.Row="1" x:Name="PinStrip" Classes="bleed" Orientation="Horizontal" Spacing="14" HorizontalAlignment="Left" />
                     </Grid>
                 </Border>
 

@@ -5,244 +5,242 @@
                        xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
                        mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
                        x:Class="PrestoGallery.Pages.ValueTypesPage">
-    <ScrollViewer>
-        <StackPanel Spacing="12">
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel x:Name="NumberCode" />
-                <Border Grid.Column="1" Classes="demo">
-                    <Button x:Name="NumberButton" Classes="specimen" Content="Number" />
-                </Border>
-            </Grid>
+    <StackPanel Spacing="12">
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel x:Name="NumberCode" />
+            <Border Classes="demo">
+                <Button x:Name="NumberButton" Classes="specimen" Content="Number" />
+            </Border>
+        </showcase:SplitPanel>
 
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel x:Name="TurnCode" />
-                <Border Grid.Column="1" Classes="demo">
-                    <Button x:Name="TurnButton" Classes="specimen" Padding="10">
-                        <PathIcon Data="{StaticResource StarIcon}" />
-                    </Button>
-                </Border>
-            </Grid>
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel x:Name="TurnCode" />
+            <Border Classes="demo">
+                <Button x:Name="TurnButton" Classes="specimen" Padding="10">
+                    <PathIcon Data="{StaticResource StarIcon}" />
+                </Button>
+            </Border>
+        </showcase:SplitPanel>
 
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel x:Name="RelativeCode" />
-                <Border Grid.Column="1" Classes="demo">
-                    <Button x:Name="RelativeButton" Classes="specimen" Content="Relative" Margin="60,0,0,0" />
-                </Border>
-            </Grid>
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel x:Name="RelativeCode" />
+            <Border Classes="demo">
+                <Button x:Name="RelativeButton" Classes="specimen" Content="Relative" Margin="60,0,0,0" />
+            </Border>
+        </showcase:SplitPanel>
 
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel x:Name="FromToCode" />
-                <Border Grid.Column="1" Classes="demo">
-                    <Button x:Name="FromToButton" Classes="specimen" Content="From → to" />
-                </Border>
-            </Grid>
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel x:Name="FromToCode" />
+            <Border Classes="demo">
+                <Button x:Name="FromToButton" Classes="specimen" Content="From → to" />
+            </Border>
+        </showcase:SplitPanel>
 
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel x:Name="PercentCode" />
-                <Border Grid.Column="1" Classes="demo">
-                    <ProgressBar x:Name="PercentBar" Width="260" Height="10"
-                                 HorizontalAlignment="Left" VerticalAlignment="Center" />
-                </Border>
-            </Grid>
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel x:Name="PercentCode" />
+            <Border Classes="demo">
+                <ProgressBar x:Name="PercentBar" Width="260" Height="10"
+                             HorizontalAlignment="Left" VerticalAlignment="Center" />
+            </Border>
+        </showcase:SplitPanel>
 
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel x:Name="HexCode" />
-                <Border Grid.Column="1" Classes="demo">
-                    <Button x:Name="HexButton" Classes="specimen" Content="Hex" />
-                </Border>
-            </Grid>
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel x:Name="HexCode" />
+            <Border Classes="demo">
+                <Button x:Name="HexButton" Classes="specimen" Content="Hex" />
+            </Border>
+        </showcase:SplitPanel>
 
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel x:Name="RgbCode" />
-                <Border Grid.Column="1" Classes="demo">
-                    <Button x:Name="RgbButton" Classes="specimen" Content="RGB" />
-                </Border>
-            </Grid>
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel x:Name="RgbCode" />
+            <Border Classes="demo">
+                <Button x:Name="RgbButton" Classes="specimen" Content="RGB" />
+            </Border>
+        </showcase:SplitPanel>
 
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel x:Name="HslCode" />
-                <Border Grid.Column="1" Classes="demo">
-                    <Button x:Name="HslButton" Classes="specimen" Content="HSL" />
-                </Border>
-            </Grid>
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel x:Name="HslCode" />
+            <Border Classes="demo">
+                <Button x:Name="HslButton" Classes="specimen" Content="HSL" />
+            </Border>
+        </showcase:SplitPanel>
 
-            <Border Classes="stage compact">
-                <StackPanel Spacing="8">
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                        <TextBlock Text="Color spaces" FontWeight="SemiBold" VerticalAlignment="Center"
-                                   Foreground="{x:Static showcase:Palette.Ink}" />
-                        <Button Content="Red → green" Click="RedToGreen" />
-                        <Button Content="Blue → yellow" Click="BlueToYellow" />
+        <Border Classes="stage compact">
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <TextBlock Text="Color spaces" FontWeight="SemiBold" VerticalAlignment="Center"
+                               Foreground="{x:Static showcase:Palette.Ink}" />
+                    <Button Content="Red → green" Click="RedToGreen" />
+                    <Button Content="Blue → yellow" Click="BlueToYellow" />
+                </StackPanel>
+                <Grid x:Name="Strips" ColumnDefinitions="90,*" RowDefinitions="28,28,28,28,28" RowSpacing="4" />
+                <TextBlock Classes="caption" TextWrapping="Wrap"
+                           Text="PrestoColor.Mix at 24 steps. Default is the pseudo-linear blend a plain color tween draws, sqrt(lerp(c²)); TweenKeyframesBuilder.Color follows any of the others." />
+            </StackPanel>
+        </Border>
+
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel x:Name="GradientCode" />
+            <Border Classes="demo">
+                <Border x:Name="GradientCard" Width="260" Height="44" CornerRadius="10"
+                        HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                            <GradientStop Offset="0" Color="#4c8dff" />
+                            <GradientStop Offset="1" Color="#22d3ee" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <TextBlock Text="2 stops → 3 stops" FontWeight="SemiBold" Foreground="White"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </Border>
+        </showcase:SplitPanel>
+
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel x:Name="ElevationCode" />
+            <Border Classes="demo" Height="96">
+                <Border x:Name="ElevationCard" Width="160" Height="44" CornerRadius="10" Background="#f8fafc"
+                        BoxShadow="0 1 3 0 #40000000" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0">
+                    <TextBlock Text="Elevation" FontWeight="SemiBold" Foreground="#0f172a"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </Border>
+        </showcase:SplitPanel>
+
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <StackPanel VerticalAlignment="Center" Spacing="6">
+                <showcase:CodePanel x:Name="GlowCode" />
+                <TextBlock Classes="caption" TextWrapping="Wrap"
+                           Text="A DropShadowEffect through the Shadow shorthands. Blur, 3D tilt and clip and mask reveals are on the Effects page." />
+            </StackPanel>
+            <Border Classes="demo" Height="96">
+                <Border x:Name="GlowCard" Width="160" Height="44" CornerRadius="10" Background="#f8fafc"
+                        HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0">
+                    <TextBlock Text="Drop shadow" FontWeight="SemiBold" Foreground="#0f172a"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </Border>
+        </showcase:SplitPanel>
+
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <StackPanel VerticalAlignment="Center" Spacing="8">
+                <showcase:CodePanel x:Name="AvatarCode" />
+                <showcase:CodePanel x:Name="ProfileCode" />
+            </StackPanel>
+            <Border Classes="demo" Height="104">
+                <Border x:Name="ProfileCard" Classes="specimen" Width="280" Height="84"
+                        BorderBrush="{x:Static showcase:Palette.AccentBright}">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                        <Border x:Name="Avatar" Width="44" Height="44" CornerRadius="22" VerticalAlignment="Center">
+                            <Border.Background>
+                                <SolidColorBrush Color="#4c8dff" />
+                            </Border.Background>
+                            <TextBlock Text="AL" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{x:Static showcase:Palette.Ink}" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                            <TextBlock Text="Ada Lovelace" FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.Ink}" />
+                            <TextBlock Classes="caption" Text="Profile 60% complete" />
+                            <ProgressBar Value="60" MinWidth="0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Border>
+        </showcase:SplitPanel>
+
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel x:Name="PointCode" />
+            <Border Classes="demo">
+                <Line x:Name="PointLine" StartPoint="0,0" EndPoint="40,0" Stroke="#4c8dff" StrokeThickness="4"
+                      HorizontalAlignment="Left" VerticalAlignment="Center" />
+            </Border>
+        </showcase:SplitPanel>
+
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel Code="{x:Static showcase:Snippets.ValueTypesArc}" />
+            <Border Classes="demo">
+                <Path x:Name="ArcPath" Stroke="#4c8dff" StrokeThickness="4"
+                      HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <Path.Data>
+                        <PathGeometry>
+                            <PathFigure StartPoint="0,0" IsClosed="False">
+                                <ArcSegment Point="200,0" Size="100,6" SweepDirection="Clockwise" />
+                            </PathFigure>
+                        </PathGeometry>
+                    </Path.Data>
+                </Path>
+            </Border>
+        </showcase:SplitPanel>
+
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel Code="{x:Static showcase:Snippets.ValueTypesRect}" />
+            <Border Classes="demo">
+                <Path x:Name="RectPath" Fill="#4c8dff" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <Path.Data>
+                        <RectangleGeometry Rect="0,12,28,28" />
+                    </Path.Data>
+                </Path>
+            </Border>
+        </showcase:SplitPanel>
+
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel x:Name="OffsetCode" />
+            <Border Classes="demo">
+                <ScrollViewer x:Name="OffsetScroller" HorizontalScrollBarVisibility="Hidden"
+                              VerticalScrollBarVisibility="Disabled" MaxWidth="260"
+                              HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Border Classes="chip"><TextBlock Text="1" /></Border>
+                        <Border Classes="chip"><TextBlock Text="2" /></Border>
+                        <Border Classes="chip"><TextBlock Text="3" /></Border>
+                        <Border Classes="chip"><TextBlock Text="4" /></Border>
+                        <Border Classes="chip"><TextBlock Text="5" /></Border>
+                        <Border Classes="chip"><TextBlock Text="6" /></Border>
+                        <Border Classes="chip"><TextBlock Text="7" /></Border>
+                        <Border Classes="chip"><TextBlock Text="8" /></Border>
                     </StackPanel>
-                    <Grid x:Name="Strips" ColumnDefinitions="90,*" RowDefinitions="28,28,28,28,28" RowSpacing="4" />
-                    <TextBlock Classes="caption" TextWrapping="Wrap"
-                               Text="PrestoColor.Mix at 24 steps. Default is the pseudo-linear blend a plain color tween draws, sqrt(lerp(c²)); TweenKeyframesBuilder.Color follows any of the others." />
+                </ScrollViewer>
+            </Border>
+        </showcase:SplitPanel>
+
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel x:Name="DotsCode" />
+            <Border Classes="demo">
+                <StackPanel x:Name="DotsPanel" Orientation="Horizontal" Spacing="12"
+                            HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <Border Classes="dot" />
+                    <Border Classes="dot" />
+                    <Border Classes="dot" />
+                    <Border Classes="dot" />
+                    <Border Classes="dot" />
+                    <Border Classes="dot" />
                 </StackPanel>
             </Border>
+        </showcase:SplitPanel>
 
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel x:Name="GradientCode" />
-                <Border Grid.Column="1" Classes="demo">
-                    <Border x:Name="GradientCard" Width="260" Height="44" CornerRadius="10"
-                            HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
-                                <GradientStop Offset="0" Color="#4c8dff" />
-                                <GradientStop Offset="1" Color="#22d3ee" />
-                            </LinearGradientBrush>
-                        </Border.Background>
-                        <TextBlock Text="2 stops → 3 stops" FontWeight="SemiBold" Foreground="White"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                </Border>
-            </Grid>
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <StackPanel VerticalAlignment="Center" Spacing="6">
+                <showcase:CodePanel x:Name="HitTestCode" />
+                <TextBlock Classes="caption" TextWrapping="Wrap"
+                           Text="A bool has no in-between, so it flips at the midpoint: past halfway the button stops taking hover and clicks." />
+            </StackPanel>
+            <Border Classes="demo">
+                <Button x:Name="HitTestButton" Classes="specimen" Content="Clicks: 0" Click="HitTestClicked" />
+            </Border>
+        </showcase:SplitPanel>
 
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel x:Name="ElevationCode" />
-                <Border Grid.Column="1" Classes="demo" Height="96">
-                    <Border x:Name="ElevationCard" Width="160" Height="44" CornerRadius="10" Background="#f8fafc"
-                            BoxShadow="0 1 3 0 #40000000" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0">
-                        <TextBlock Text="Elevation" FontWeight="SemiBold" Foreground="#0f172a"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                </Border>
-            </Grid>
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel x:Name="WeightCode" />
+            <Border Classes="demo">
+                <Button x:Name="WeightButton" Classes="specimen" Content="Font weight" />
+            </Border>
+        </showcase:SplitPanel>
 
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <StackPanel VerticalAlignment="Center" Spacing="6">
-                    <showcase:CodePanel x:Name="GlowCode" />
-                    <TextBlock Classes="caption" TextWrapping="Wrap"
-                               Text="A DropShadowEffect through the Shadow shorthands. Blur, 3D tilt and clip and mask reveals are on the Effects page." />
-                </StackPanel>
-                <Border Grid.Column="1" Classes="demo" Height="96">
-                    <Border x:Name="GlowCard" Width="160" Height="44" CornerRadius="10" Background="#f8fafc"
-                            HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0">
-                        <TextBlock Text="Drop shadow" FontWeight="SemiBold" Foreground="#0f172a"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                </Border>
-            </Grid>
-
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <StackPanel VerticalAlignment="Center" Spacing="8">
-                    <showcase:CodePanel x:Name="AvatarCode" />
-                    <showcase:CodePanel x:Name="ProfileCode" />
-                </StackPanel>
-                <Border Grid.Column="1" Classes="demo" Height="104">
-                    <Border x:Name="ProfileCard" Classes="specimen" Width="280" Height="84"
-                            BorderBrush="{x:Static showcase:Palette.AccentBright}">
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                            <Border x:Name="Avatar" Width="44" Height="44" CornerRadius="22" VerticalAlignment="Center">
-                                <Border.Background>
-                                    <SolidColorBrush Color="#4c8dff" />
-                                </Border.Background>
-                                <TextBlock Text="AL" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           Foreground="{x:Static showcase:Palette.Ink}" />
-                            </Border>
-                            <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                                <TextBlock Text="Ada Lovelace" FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.Ink}" />
-                                <TextBlock Classes="caption" Text="Profile 60% complete" />
-                                <ProgressBar Value="60" MinWidth="0" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-                </Border>
-            </Grid>
-
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel x:Name="PointCode" />
-                <Border Grid.Column="1" Classes="demo">
-                    <Line x:Name="PointLine" StartPoint="0,0" EndPoint="40,0" Stroke="#4c8dff" StrokeThickness="4"
-                          HorizontalAlignment="Left" VerticalAlignment="Center" />
-                </Border>
-            </Grid>
-
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel Code="{x:Static showcase:Snippets.ValueTypesArc}" />
-                <Border Grid.Column="1" Classes="demo">
-                    <Path x:Name="ArcPath" Stroke="#4c8dff" StrokeThickness="4"
-                          HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <Path.Data>
-                            <PathGeometry>
-                                <PathFigure StartPoint="0,0" IsClosed="False">
-                                    <ArcSegment Point="200,0" Size="100,6" SweepDirection="Clockwise" />
-                                </PathFigure>
-                            </PathGeometry>
-                        </Path.Data>
-                    </Path>
-                </Border>
-            </Grid>
-
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel Code="{x:Static showcase:Snippets.ValueTypesRect}" />
-                <Border Grid.Column="1" Classes="demo">
-                    <Path x:Name="RectPath" Fill="#4c8dff" HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <Path.Data>
-                            <RectangleGeometry Rect="0,12,28,28" />
-                        </Path.Data>
-                    </Path>
-                </Border>
-            </Grid>
-
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel x:Name="OffsetCode" />
-                <Border Grid.Column="1" Classes="demo">
-                    <ScrollViewer x:Name="OffsetScroller" HorizontalScrollBarVisibility="Hidden"
-                                  VerticalScrollBarVisibility="Disabled" MaxWidth="260"
-                                  HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Border Classes="chip"><TextBlock Text="1" /></Border>
-                            <Border Classes="chip"><TextBlock Text="2" /></Border>
-                            <Border Classes="chip"><TextBlock Text="3" /></Border>
-                            <Border Classes="chip"><TextBlock Text="4" /></Border>
-                            <Border Classes="chip"><TextBlock Text="5" /></Border>
-                            <Border Classes="chip"><TextBlock Text="6" /></Border>
-                            <Border Classes="chip"><TextBlock Text="7" /></Border>
-                            <Border Classes="chip"><TextBlock Text="8" /></Border>
-                        </StackPanel>
-                    </ScrollViewer>
-                </Border>
-            </Grid>
-
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel x:Name="DotsCode" />
-                <Border Grid.Column="1" Classes="demo">
-                    <StackPanel x:Name="DotsPanel" Orientation="Horizontal" Spacing="12"
-                                HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <Border Classes="dot" />
-                        <Border Classes="dot" />
-                        <Border Classes="dot" />
-                        <Border Classes="dot" />
-                        <Border Classes="dot" />
-                        <Border Classes="dot" />
-                    </StackPanel>
-                </Border>
-            </Grid>
-
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <StackPanel VerticalAlignment="Center" Spacing="6">
-                    <showcase:CodePanel x:Name="HitTestCode" />
-                    <TextBlock Classes="caption" TextWrapping="Wrap"
-                               Text="A bool has no in-between, so it flips at the midpoint: past halfway the button stops taking hover and clicks." />
-                </StackPanel>
-                <Border Grid.Column="1" Classes="demo">
-                    <Button x:Name="HitTestButton" Classes="specimen" Content="Clicks: 0" Click="HitTestClicked" />
-                </Border>
-            </Grid>
-
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel x:Name="WeightCode" />
-                <Border Grid.Column="1" Classes="demo">
-                    <Button x:Name="WeightButton" Classes="specimen" Content="Font weight" />
-                </Border>
-            </Grid>
-
-            <Grid ColumnDefinitions="*,360" ColumnSpacing="12">
-                <showcase:CodePanel x:Name="AlignmentCode" />
-                <Border Grid.Column="1" Classes="demo">
-                    <Button x:Name="AlignmentButton" Classes="specimen" Content="Alignment" />
-                </Border>
-            </Grid>
-        </StackPanel>
-    </ScrollViewer>
+        <showcase:SplitPanel Widths="*,360" Spacing="12">
+            <showcase:CodePanel x:Name="AlignmentCode" />
+            <Border Classes="demo">
+                <Button x:Name="AlignmentButton" Classes="specimen" Content="Alignment" />
+            </Border>
+        </showcase:SplitPanel>
+    </StackPanel>
 </showcase:ShowcasePage>

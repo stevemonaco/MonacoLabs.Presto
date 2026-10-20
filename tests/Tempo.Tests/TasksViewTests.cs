@@ -370,6 +370,25 @@ public sealed class TasksViewTests : TempoTestBase
         await vm.FlushAsync();
     }
 
+    [AvaloniaFact]
+    public async Task EveryGhostInABatchFadesAtOnceWhileOnlyTheSlideIsStaggered()
+    {
+        var (window, vm) = await ShowAsync(reduced: false, "A", "B", "C", "D", "E", "F");
+        var (top, last) = (vm.Tasks[0], vm.Tasks[^1]);
+
+        vm.ClearAll();
+        TestFrames.Tick();
+        var ghosts = Ghosts(window).ToList();
+        var first = Assert.Single(MonacoLabs.Presto.Presto.GetAnimations(ghosts.Single(g => g.DataContext == top)));
+        while (first.CurrentTime < 120)
+            TestFrames.Tick();
+
+        Assert.All(ghosts, g => Assert.InRange(g.Opacity, 0, .1));
+        Assert.Equal(0, Convert.ToDouble(MonacoLabs.Presto.Presto.Get(ghosts.Single(g => g.DataContext == last), "X", withUnit: false)), 1);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
@@ -382,8 +401,16 @@ public sealed class TasksViewTests : TempoTestBase
         vm.ClearAll();
         TestFrames.Tick();
 
-        var delays = Ghosts(window).ToDictionary(g => g.DataContext!, g => Assert.Single(MonacoLabs.Presto.Presto.GetAnimations(g)).Delay);
-        Assert.Equal(reduced ? [0.0, 0, 0] : [0.0, 30, 60], order.Select(task => delays[task]));
+        var ghosts = Ghosts(window).ToDictionary(g => g.DataContext!);
+        var exits = order.Select(task => Assert.Single(MonacoLabs.Presto.Presto.GetAnimations(ghosts[task]))).ToList();
+        if (reduced) Assert.All(exits, exit => Assert.Equal(0, exit.Delay));
+        else
+        {
+            while (exits[0].CurrentTime < 150)
+                TestFrames.Tick();
+            var slid = order.Select(task => Convert.ToDouble(MonacoLabs.Presto.Presto.Get(ghosts[task], "X", withUnit: false))).ToList();
+            Assert.True(slid[0] < slid[1] && slid[1] < slid[2], $"the rows slid to {string.Join(", ", slid)}");
+        }
         for (var frame = 0; frame < 60 && Ghosts(window).Any(); frame++)
         {
             Assert.Equal(0, empty.Opacity);

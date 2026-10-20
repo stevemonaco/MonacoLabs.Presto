@@ -102,7 +102,6 @@ public partial class DashboardPage : ShowcasePage
                     },
                 },
             };
-            Grid.SetColumn(tile, i);
             Tiles.Children.Add(tile);
         }
     }

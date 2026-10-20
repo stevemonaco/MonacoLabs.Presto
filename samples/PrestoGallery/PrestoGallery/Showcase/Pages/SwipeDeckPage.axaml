@@ -61,31 +61,29 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Spacing="12">
-            <Border MinHeight="440" CornerRadius="10" ClipToBounds="True" BorderThickness="1"
-                    BorderBrush="{x:Static showcase:Palette.Border}" Background="{x:Static showcase:Palette.Surface}">
-                <Panel>
-                    <TextBlock Classes="eyebrow showcase" Margin="12" Text="SWIPE DECK" />
-                    <StackPanel Spacing="18" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <Panel x:Name="Deck" Width="240" Height="328" />
-                        <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Center">
-                            <Button x:Name="NopeButton" Classes="round" Click="NopeClicked">
-                                <PathIcon Foreground="{x:Static showcase:Palette.Coral}"
-                                          Data="M3,1.6 L8,6.6 L13,1.6 L14.4,3 L9.4,8 L14.4,13 L13,14.4 L8,9.4 L3,14.4 L1.6,13 L6.6,8 L1.6,3 Z" />
-                            </Button>
-                            <Button x:Name="UndoButton" Classes="round" IsEnabled="False" Click="UndoClicked">
-                                <PathIcon Foreground="{x:Static showcase:Palette.Amber}"
-                                          Data="M8,2 A6,6 0 1 1 2.3,10 L4.2,9.4 A4,4 0 1 0 8,4 L8,7 L3,3 L8,-1 Z" />
-                            </Button>
-                            <Button x:Name="LikeButton" Classes="round" Click="LikeClicked">
-                                <PathIcon Foreground="{x:Static showcase:Palette.Aqua}" Data="{StaticResource HeartIcon}" />
-                            </Button>
-                        </StackPanel>
+    <StackPanel Spacing="12">
+        <Border MinHeight="440" CornerRadius="10" ClipToBounds="True" BorderThickness="1"
+                BorderBrush="{x:Static showcase:Palette.Border}" Background="{x:Static showcase:Palette.Surface}">
+            <Panel>
+                <TextBlock Classes="eyebrow showcase" Margin="12" Text="SWIPE DECK" />
+                <StackPanel Spacing="18" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Panel x:Name="Deck" Width="240" Height="328" />
+                    <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Center">
+                        <Button x:Name="NopeButton" Classes="round" Click="NopeClicked">
+                            <PathIcon Foreground="{x:Static showcase:Palette.Coral}"
+                                      Data="M3,1.6 L8,6.6 L13,1.6 L14.4,3 L9.4,8 L14.4,13 L13,14.4 L8,9.4 L3,14.4 L1.6,13 L6.6,8 L1.6,3 Z" />
+                        </Button>
+                        <Button x:Name="UndoButton" Classes="round" IsEnabled="False" Click="UndoClicked">
+                            <PathIcon Foreground="{x:Static showcase:Palette.Amber}"
+                                      Data="M8,2 A6,6 0 1 1 2.3,10 L4.2,9.4 A4,4 0 1 0 8,4 L8,7 L3,3 L8,-1 Z" />
+                        </Button>
+                        <Button x:Name="LikeButton" Classes="round" Click="LikeClicked">
+                            <PathIcon Foreground="{x:Static showcase:Palette.Aqua}" Data="{StaticResource HeartIcon}" />
+                        </Button>
                     </StackPanel>
-                </Panel>
-            </Border>
-            <showcase:CodePanel x:Name="GraphCode" Code="{x:Static showcase:Snippets.SwipeDeckBind}" />
-        </StackPanel>
-    </ScrollViewer>
+                </StackPanel>
+            </Panel>
+        </Border>
+        <showcase:CodePanel x:Name="GraphCode" Code="{x:Static showcase:Snippets.SwipeDeckBind}" />
+    </StackPanel>
 </showcase:ShowcasePage>

@@ -103,6 +103,8 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
   - Tests: manual — needs a non-Windows head (Browser, macOS); the property must leave native wheel scrolling unchanged there.
 - **BRIDGE-SCROLL-071** — While `PrestoDefaults.ReducedMotion` is set at a notch, `Smooth` shall leave the wheel event unhandled, so the notch takes its native step at once.
   - Tests: `ScrollSmoothTests.UnderReducedMotionANotchTakesItsNativeStepAtOnce`
+- **BRIDGE-SCROLL-085** — With Control or Meta held, `Smooth` shall leave the wheel event unhandled, so content inside the scroller can take it as a zoom.
+  - Tests: `ScrollSmoothTests.AControlOrCommandNotchIsLeftForZoomableContent`
 
 ### `"ScrollX"`/`"ScrollY"` shorthands
 
@@ -312,6 +314,7 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 - **The mask is one brush with four stops, changed in place, and the scroller's presenter is invalidated after each change.** Reason: a new brush per notification would allocate on every scroll; the renderer repaints a mask changed in place only where something under it is invalidated, and the scroller itself draws nothing, so invalidating the control left the old mask on screen until the next scroll. Rejected: invalidating the control (its render is empty); re-setting `OpacityMask` (two property changes per notification).
 - **Pin, spacing and snap follow GSAP ScrollTrigger, layered on the ported observer.** See BRIDGE-SCROLLOBSERVER.
 - **The signal is an event on `Engine`, not on `PrestoDefaults`.** See CORE-REDUCED.
+- **`Smooth` leaves Ctrl/Cmd+wheel to the content.** Its handler runs on the tunnel pass, before anything inside the scroller, so without this a zoomable child (a `Transformable` photo) inside a smoothed page scroller could never zoom. Reason: Ctrl/Cmd+wheel is the platform zoom gesture, never a scroll. Rejected: handling the wheel on the bubble pass (the scroller's own presenter handles it first, so nothing would be smoothed).
 
 ## Non-goals
 
