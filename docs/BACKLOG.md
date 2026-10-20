@@ -89,6 +89,7 @@ When an item is closed, its line is deleted.
 - [BRIDGE-SCROLL] A `Scroll.Progress` convenience for a scroll progress bar.
 - [BRIDGE-RECIPES] A one-line `Recipes.ArcFlight` to replace the sample's `Showcase/PhotoFlight.cs`.
 - [BRIDGE-RECIPES] A text-shaped mask reveal and `MorphTo` clip-geometry reveals.
+- [BRIDGE-RECIPES] Recipe extensions (`{presto:Scale}`, `{presto:Fade}`…) take a `Stagger` step but no `From`/`Grid`, so Storefront's center-out card exit is a page builder (`StorefrontPage.CardExit`).
 - [BRIDGE-HELPERS] Lift `AfterFirstArrange` (`Showcase/ShowcasePage.cs`, used by ChatLog, GalleryFlip and Liquid) into a `PrestoAvalonia` utility.
 - [BRIDGE-IMAGE] Decide whether `FilteredImage` should resize to an incoming image of another aspect only when the source transition ends, rather than at its start.
 - [BRIDGE-IMAGE] A pre-baked crossfade mode (a filtered copy faded with `Opacity`, compositor-capable), if UI-thread filtering proves too costly on Browser or Android.
@@ -161,6 +162,7 @@ Friction found while building the Tempo sample (`samples/Tempo/Tempo/`): first t
 - [SAMPLE] Tempo's page host is unclipped so the page scrollbars can sit in the window gutter (`edge-scroll`), which lets the page swap's slide draw a few DIPs past the card edges mid-transition; clipping to the card plus the right gutter would keep the edge scrollbar without it.
 - [SAMPLE] In a short compact window the Focus page keeps the summary row's 64 DIP below the controls even when no session has finished, so the dial is smaller than it needs to be; the summary could float over the bottom instead.
 - [BRIDGE-PRESENCE-EXIT] An exit batch orders its ghosts by their top-left corners (BRIDGE-PRESENCE-EXIT-040), so Tempo's Stats bars, which share a baseline but differ in height, collapse tallest first rather than left to right; left to right would need a different sort key (the container's bounds or the ghost's bottom edge) and a spec decision.
+- [BRIDGE-PRESENCE-EXIT] Ghosts draw in the overlay layer, above live siblings and above a `Modal`'s scrim, so a leaving row overlaps the rows easing into its gap (Tempo's tag-filter swap, eased in the sample by RowExit's early fade) and stays sharp over a modal's blur.
 
 ## Per-spec open items
 
@@ -183,7 +185,7 @@ Each spec's Open items section lists its untested requirements and other loose e
 - [BRIDGE-PRESENCE](specs/avalonia-bridge/presence.md): 0 untested requirements, plus the initialize-first half of 019.
 - [BRIDGE-RIPPLE](specs/avalonia-bridge/press-ripple.md): 0 untested requirements, plus a truly missing accent resource (023) and the Browser/Android measurement.
 - [BRIDGE-SUBMIT](specs/avalonia-bridge/progress-and-submit.md): 1 untested requirement (027, which no public path reaches).
-- [BRIDGE-TARGETS](specs/avalonia-bridge/property-resolution.md): 1 untested requirement (027, the params constructors initializing the bridge), plus 014's masked write under a completed animation, centered content moving one device pixel on a half-pixel tie at 125% (to decide: bias the tie in the size snap; an open question in `docs/changes/showcase-recent-features.md`), and the centered edge-gap check at fractional scalings, which `LayoutSizeSnapTests` covers only at 1.
+- [BRIDGE-TARGETS](specs/avalonia-bridge/property-resolution.md): 1 untested requirement (027, the params constructors initializing the bridge), plus 014's masked write under a completed animation, and the centered edge-gap check at fractional scalings, which `LayoutSizeSnapTests` covers only at 1.
 - [BRIDGE-RECIPES](specs/avalonia-bridge/recipes.md): 0 untested requirements, plus `MorphText`'s fixed shard count, `WriteIn` lacking an all-at-once option, `WriteIn`/`Shatter` not re-seekable in a timeline, and `PageSharedAxis`'s exit travel without a direct test.
 - [BRIDGE-REDUCED](specs/avalonia-bridge/reduced-motion.md): 0 untested requirements, plus the window-activation and browser-change refreshes, checked only by hand.
 - [BRIDGE-SCROLL](specs/avalonia-bridge/scroll.md): 0 untested requirements, plus two manual checks (non-Windows head, XAML previewer).

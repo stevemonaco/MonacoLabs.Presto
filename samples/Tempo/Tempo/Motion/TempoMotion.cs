@@ -53,15 +53,16 @@ public static class TempoMotion
         .Duration(420)
         .Ease(Eases.OutCubic)
         .Delay(Presto.Stagger(40))
-        .WhenReduced(reduced => reduced.Opacity(from: 0).Duration(240));
+        .WhenReduced(reduced => reduced.Opacity(from: 0).Duration(240).Delay(0));
 
+    /// <summary>A leaving row's ghost, faded early so it is mostly gone before the rows easing into its gap reach it (BRIDGE-PRESENCE-EXIT).</summary>
     public static readonly AnimationBuilder RowExit = Presto.Build()
-        .Opacity(0)
+        .Opacity(0, duration: 120, ease: Eases.OutQuad)
         .X(-24)
         .Duration(220)
         .Ease(Eases.InCubic)
         .Delay(Presto.Stagger(30))
-        .WhenReduced(reduced => reduced.Opacity(0).Duration(160).Delay(0));
+        .WhenReduced(reduced => reduced.Opacity(0).Duration(160).Ease(Eases.OutQuad).Delay(0));
 
     public static readonly AnimationBuilder RowLift = Recipes.ReorderLift(duration: 180);
 

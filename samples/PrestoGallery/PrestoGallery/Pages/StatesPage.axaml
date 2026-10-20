@@ -255,6 +255,69 @@
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="The menu button sets Motion.State=&quot;Open&quot; on the panel only. Its items declare an Open state but no state of their own, so they follow the panel's: StaggerChildren starts each one 40 ms after the one above, DelayChildren holds them all back by 60, and Order picks whether the panel unfolds before, with or after them. The From picker runs the stagger from the top, the bottom or the middle." />
 
+            <Border Classes="stage">
+                <StackPanel Orientation="Horizontal" Spacing="24">
+                    <StackPanel Spacing="8">
+                        <ComboBox x:Name="ModePicker" Width="160" ItemsSource="{x:Static local:StatesPage.Modes}"
+                                  SelectedItem="{Binding $parent[local:StatesPage].Mode}" />
+                        <ToggleButton x:Name="SelectedToggle" Content="Selected" IsChecked="{Binding $parent[local:StatesPage].IsSelected}" />
+                        <ToggleButton x:Name="BusyToggle" Content="Busy" IsChecked="{Binding $parent[local:StatesPage].IsBusy}" />
+                    </StackPanel>
+                    <!-- snippet: StatesComposed -->
+                    <StackPanel Spacing="8" VerticalAlignment="Center">
+                        <Border x:Name="ComposedChip" Classes="status" HorizontalAlignment="Left"
+                                presto:Motion.State="{presto:StateTokens {Binding $parent[local:StatesPage].Mode}, {Binding $parent[local:StatesPage].IsSelected}, {Binding $parent[local:StatesPage].IsBusy}}">
+                            <presto:Motion.States>
+                                <presto:MotionStates>
+                                    <presto:MotionState When="Review" Motion="{x:Static local:StatesPage.InReview}" />
+                                    <presto:MotionState When="Live" Motion="{x:Static local:StatesPage.Success}" />
+                                    <presto:MotionState When="IsSelected" Motion="{x:Static local:StatesPage.Outline}" />
+                                    <presto:MotionState When="IsBusy" Motion="{x:Static local:StatesPage.Pulse}" />
+                                </presto:MotionStates>
+                            </presto:Motion.States>
+                            <TextBlock Text="{Binding $parent[local:StatesPage].Mode}" />
+                        </Border>
+                        <TextBlock x:Name="TokenReadout" Classes="mono" Text="{Binding #ComposedChip.(presto:Motion.State)}" />
+                    </StackPanel>
+                    <!-- /snippet -->
+                </StackPanel>
+            </Border>
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="StateTokens composes one Motion.State from three bindings: the Mode string gives its own name, and a true flag gives its binding's last member name, so Selected and Busy read as IsSelected and IsBusy. Each state names one token, and they hold together: the chip takes the mode's color, an outline while selected and a pulse while busy. The line under the chip is its Motion.State." />
+            <showcase:CodePanel x:Name="ComposedCode" Language="Xaml" Code="{x:Static showcase:Snippets.StatesComposed}" />
+
+            <Border Classes="stage">
+                <!-- snippet: StatesLayering -->
+                <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center"
+                            presto:Motion.State="{presto:StateTokens {Binding $parent[local:StatesPage].Mode}, {Binding $parent[local:StatesPage].IsBusy}}">
+                    <StackPanel.Styles>
+                        <Style Selector="Border.layer-card">
+                            <Setter Property="presto:Motion.States">
+                                <presto:MotionStates>
+                                    <presto:MotionState When="Review" Motion="{x:Static local:StatesPage.InReview}" />
+                                    <presto:MotionState When="Live" Motion="{x:Static local:StatesPage.Success}" />
+                                </presto:MotionStates>
+                            </Setter>
+                        </Style>
+                    </StackPanel.Styles>
+                    <Border x:Name="StyleLayerCard" Classes="card layer-card"><TextBlock Text="Style" /></Border>
+                    <Border x:Name="LocalLayerCard" Classes="card layer-card">
+                        <presto:Motion.LocalStates>
+                            <presto:MotionStates>
+                                <presto:MotionState When="IsBusy" Motion="{x:Static local:StatesPage.BusyTint}" />
+                                <presto:MotionState When="IsBusy" Motion="{x:Static local:StatesPage.Breathe}" />
+                            </presto:MotionStates>
+                        </presto:Motion.LocalStates>
+                        <TextBlock Text="Style + local" />
+                    </Border>
+                    <Border Classes="card layer-card"><TextBlock Text="Style" /></Border>
+                </StackPanel>
+                <!-- /snippet -->
+            </Border>
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="The cards set no Motion.State of their own, so they follow the row's, which composes the same Mode and Busy. A style gives every card the mode colors through Motion.States; the middle card adds Motion.LocalStates, a busy color for the same Background and a breathe. States layer Hover, Focus, Press, then States, then LocalStates, then states added from code, and a later layer wins a property they share: with Busy on, the middle card takes the busy color while its siblings keep the mode's." />
+            <showcase:CodePanel x:Name="LayeringCode" Language="Xaml" Code="{x:Static showcase:Snippets.StatesLayering}" />
+
             <TextBlock Classes="caption" Text="The builders and the XAML" />
             <showcase:CodeTabs x:Name="Code" />
         </StackPanel>

@@ -335,6 +335,67 @@ public sealed class TasksViewTests : TempoTestBase
         await vm.FlushAsync();
     }
 
+    [AvaloniaFact]
+    public async Task UnderReducedMotionRestoredRowsFadeInTogether()
+    {
+        var (window, vm) = await ShowAsync(reduced: true);
+
+        vm.RestoreSampleData();
+        TestFrames.Tick();
+
+        var delays = Rows(window).Select(row => Assert.Single(MonacoLabs.Presto.Presto.GetAnimations(row)).Delay).ToList();
+        Assert.True(delays.Count > 1);
+        Assert.All(delays, delay => Assert.Equal(0, delay));
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaFact]
+    public async Task ADeletedRowsGhostFadesOverItsFirst120MsWhileItStillSlides()
+    {
+        var (window, vm) = await ShowAsync(reduced: false, "A", "B", "C");
+        var b = vm.Tasks[1];
+
+        vm.DeleteTaskCommand.Execute(b);
+        TestFrames.Tick();
+        var ghost = Assert.Single(Ghosts(window), g => g.DataContext == b);
+        var exit = Assert.Single(MonacoLabs.Presto.Presto.GetAnimations(ghost));
+        Assert.Equal(0, exit.Delay);
+        while (exit.CurrentTime < 120)
+            TestFrames.Tick();
+
+        Assert.InRange(ghost.Opacity, 0, .1);
+        Assert.InRange(Convert.ToDouble(MonacoLabs.Presto.Presto.Get(ghost, "X", withUnit: false)), -20, -.5);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TheClearLeavesTopRowFirstAndTheEmptyLineWaitsForTheLastGhost(bool reduced)
+    {
+        var (window, vm) = await ShowAsync(reduced, "A", "B", "C");
+        var order = vm.Tasks.ToList();
+        var empty = window.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text?.StartsWith("Nothing planned") == true);
+
+        vm.ClearAll();
+        TestFrames.Tick();
+
+        var delays = Ghosts(window).ToDictionary(g => g.DataContext!, g => Assert.Single(MonacoLabs.Presto.Presto.GetAnimations(g)).Delay);
+        Assert.Equal(reduced ? [0.0, 0, 0] : [0.0, 30, 60], order.Select(task => delays[task]));
+        for (var frame = 0; frame < 60 && Ghosts(window).Any(); frame++)
+        {
+            Assert.Equal(0, empty.Opacity);
+            TestFrames.Tick();
+        }
+        Assert.Empty(Ghosts(window));
+        TestFrames.Tick(60);
+        Assert.Equal(1, empty.Opacity);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]

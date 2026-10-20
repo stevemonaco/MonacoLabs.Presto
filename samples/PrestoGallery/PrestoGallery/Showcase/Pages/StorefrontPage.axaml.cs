@@ -29,6 +29,11 @@ public partial class StorefrontPage : ShowcasePage
     /// <summary>The hover that colors a sold-out product's gray picture.</summary>
     public static readonly AnimationBuilder Colorize = Recipes.Colorize();
 
+    /// <summary>The leaving cards' scale-and-fade, staggered from the middle of the exit batch outward. Reduced: a fade, all at once.</summary>
+    public static readonly AnimationBuilder CardExit = Recipes.ScaleOut()
+        .Delay(Presto.Stagger(35, new() { From = StaggerFrom.Center }))
+        .WhenReduced(reduced => reduced.Opacity(0).Delay(0));
+
     public StorefrontPage()
     {
         InitializeComponent();

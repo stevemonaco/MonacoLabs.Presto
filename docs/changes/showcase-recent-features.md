@@ -64,11 +64,13 @@ These go to ARCHITECTURE §5 (Gallery and Tempo).
 - **Storefront's exit is a page builder, not a recipe extension.** Reason: `{presto:Scale}` takes a `Stagger` step but no origin. "Demos never quietly grow the library", so the missing `From` goes to the backlog as a finding. Rejected: adding `StaggerFrom` to `RecipeExtension` in this change.
 - **Tempo's filter overlap is eased in the sample, and the cause goes to the backlog.** Ghosts draw in the top level's overlay layer, above the live rows (and above a `Modal`'s scrim, the clear's other finding). As long as that holds, a leaving row that fades early is the sample-side fix. BRIDGE-DECLLAYOUT-020 (the rows ease into the gap while the exit plays) stays as it is. Rejected: delaying `{presto:Reflow}` (every insert and reorder would lag), and a zero-duration reduced exit (it would lose the clear's fade and the `Wait` handoff).
 
+- **The 125% label tie on `SubmitButton` is accepted.** The label is fading during both moves, and the cause is a half-pixel centering tie that Avalonia breaks by floating-point noise, which no even step removes. It goes to BRIDGE-TARGETS as a decision, and the Micro-interactions caption does not claim the label is still at 125%. Rejected: biasing the snapped width so ties round one way (still a 1 px move at the start and end, and it relies on Avalonia's rounding); restructuring `SubmitButton` so the label sits over the button (a control change).
+
 ## Spec changes
 
 None to requirements; samples are not owned by specs.
 
-Depending on the open question, a BRIDGE-TARGETS (`property-resolution.md`) decision records the 125% tie, and the backlog's "to decide" note on BRIDGE-TARGETS is struck.
+BRIDGE-TARGETS (`property-resolution.md`) gains a decision accepting the 125% tie (see Decisions), and the backlog's "to decide" note on BRIDGE-TARGETS is struck.
 
 ## Tasks
 
@@ -129,8 +131,4 @@ Depending on the open question, a BRIDGE-TARGETS (`property-resolution.md`) deci
 
 ## Open questions
 
-- **The 125% label tie on `SubmitButton`.** Recommended: accept it and record a BRIDGE-TARGETS decision. The label is fading during both moves, and the cause is a half-pixel centering tie that Avalonia breaks by floating-point noise, which no even step removes. Alternatives:
-  - bias the snapped width so ties round one way (still a 1 px move at the start and end, and it relies on Avalonia's rounding);
-  - restructure `SubmitButton` so the label sits over the button, not inside it (a control change).
-
-  The caption's wording follows the answer.
+None.

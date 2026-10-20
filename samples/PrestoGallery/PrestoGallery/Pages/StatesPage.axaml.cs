@@ -12,13 +12,25 @@ namespace PrestoGallery.Pages;
 /// <summary>
 /// <c>Motion</c> states on real controls: hover, press and focus sugar, <c>:checked</c> and <c>:focus</c> through
 /// <c>Motion.States</c>, a parent's hover reaching a child through a style setter on <c>Motion.State</c>, a bound status
-/// chip, a card driven by a view model's enum and a class binding, and a menu whose items follow the panel's state in a stagger. The log is written from the controls' own class and
-/// property changes.
+/// chip, a card driven by a view model's enum and a class binding, a menu whose items follow the panel's state in a stagger,
+/// a chip composed from three bindings by <c>StateTokens</c>, and <c>Motion.LocalStates</c> layered over a style's
+/// <c>Motion.States</c>. The log is written from the controls' own class and property changes.
 /// </summary>
 public partial class StatesPage : UserControl
 {
     public static readonly StyledProperty<string> StatusProperty =
         AvaloniaProperty.Register<StatesPage, string>(nameof(Status), "Idle");
+
+    public static readonly StyledProperty<string> ModeProperty =
+        AvaloniaProperty.Register<StatesPage, string>(nameof(Mode), "Draft");
+
+    public static readonly StyledProperty<bool> IsSelectedProperty =
+        AvaloniaProperty.Register<StatesPage, bool>(nameof(IsSelected));
+
+    public static readonly StyledProperty<bool> IsBusyProperty =
+        AvaloniaProperty.Register<StatesPage, bool>(nameof(IsBusy));
+
+    public static readonly string[] Modes = ["Draft", "Review", "Live"];
 
     private const int MaxEntries = 14;
 
@@ -51,6 +63,15 @@ public partial class StatesPage : UserControl
     public static readonly AnimationBuilder Trophy = Presto.Build().Scale(1.06).Duration(420).Ease(Eases.OutBack(2));
     public static readonly AnimationBuilder Unfold = Presto.Build().Opacity(1).ScaleY(1, from: .6).Duration(220).Ease(Eases.OutQuart);
     public static readonly AnimationBuilder SlideIn = Presto.Build().Opacity(1).Y(0, from: 14).Duration(320).Ease(Eases.OutQuart);
+    public static readonly AnimationBuilder InReview = Presto.Build().Background(Palette.Violet).Duration(300);
+    public static readonly AnimationBuilder Outline = Presto.Build().Property("BorderBrush", TweenValue.Of(Palette.Ink)).Duration(200);
+    public static readonly AnimationBuilder BusyTint = Presto.Build().Background(Palette.Amber).Duration(300);
+    public static readonly AnimationBuilder Breathe = Presto.Build()
+        .Scale(k => k.To(1.05).To(1))
+        .Duration(1400)
+        .Ease(Eases.InOutSine)
+        .Loop()
+        .WhenReduced(reduced => reduced.Loop(false));
     #endregion
 
     private readonly ObservableCollection<string> _entries = [];
@@ -78,6 +99,24 @@ public partial class StatesPage : UserControl
     {
         get => GetValue(StatusProperty);
         set => SetValue(StatusProperty, value);
+    }
+
+    public string Mode
+    {
+        get => GetValue(ModeProperty);
+        set => SetValue(ModeProperty, value);
+    }
+
+    public bool IsSelected
+    {
+        get => GetValue(IsSelectedProperty);
+        set => SetValue(IsSelectedProperty, value);
+    }
+
+    public bool IsBusy
+    {
+        get => GetValue(IsBusyProperty);
+        set => SetValue(IsBusyProperty, value);
     }
 
     private void RecordClasses(string name, NotifyCollectionChangedEventArgs e)

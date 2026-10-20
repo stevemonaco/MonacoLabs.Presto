@@ -6,6 +6,7 @@ using Avalonia.Data;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using MonacoLabs.Presto;
 using PrestoGallery.Showcase;
 using Timer = MonacoLabs.Presto.Timer;
@@ -26,8 +27,13 @@ public partial class LifecyclePage : UserControl
     private static readonly IBrush TodoTint = Brush.Parse("#7dd3fc");
     private static readonly IBrush DoneTint = Brush.Parse("#cbd5e1");
     private static readonly string[] Steps = ["AccountStep", "PlanStep", "DoneStep"];
+    private static readonly (StaggerFrom From, string Name)[] ExitOrders =
+        [(StaggerFrom.First, nameof(StaggerFrom.First)), (StaggerFrom.Last, nameof(StaggerFrom.Last)), (StaggerFrom.Center, nameof(StaggerFrom.Center))];
 
-    private readonly (string Title, ObservableCollection<string> Rows, ItemsControl List, Control View)[] _views;
+    private readonly (string Title, ObservableCollection<string> Rows, ItemsControl List, Panel ListAndEmptyLine, Control View)[] _views;
+    private readonly (string Initial, string Enter, string Empty) _code;
+    private AnimationBuilder _exit;
+    private string _exitCode;
     private readonly FilteredView<Chore> _shown;
     private readonly Control[] _panels = [Panel("Inbox", "#7dd3fc"), Panel("Archive", "#fca5a5")];
     private int _view;
@@ -40,25 +46,21 @@ public partial class LifecyclePage : UserControl
         InitializeComponent();
         var (initial, initialCode) = Snippet.Of(Recipes.FadeUp(distance: 18, duration: 460, ease: Eases.OutQuart).Delay(Presto.Stagger(70)));
         var (enter, enterCode) = Snippet.Of(Recipes.SlideIn(Edge.Left, distance: 40, duration: 380, ease: Eases.OutBack(1.4)));
-        var (exit, exitCode) = Snippet.Of(Presto.Build().Opacity(to: 0).X(to: 60).Duration(300).Ease(Eases.InQuad).Delay(Presto.Stagger(40)));
         var (empty, emptyCode) = Snippet.Of(Recipes.Fade(duration: 360));
-        RowCode.Code = $"""
-            Presence.SetInitial(row, {initialCode});
-            Presence.SetEnter(row, {enterCode});
-            Presence.SetExit(row, {exitCode});
-            Presence.SetMode(listAndEmptyLine, PresenceMode.Wait);
-            Presence.SetArrive(emptyLine, {emptyCode});
-            """;
+        _code = (initialCode, enterCode, emptyCode);
+        (_exit, _exitCode) = Exit(ExitOrders[0]);
         initial.OnBegin(timer => Moments.Record("Initial", InitialTint, RowOf(timer)));
         enter.OnBegin(timer => Moments.Record("Enter", EnterTint, RowOf(timer)));
-        exit.OnBegin(_ => Moments.Record("Exit", ExitTint, "a ghost of the removed row"));
 
         _views =
         [
-            View("Inbox", ["Reply to Grace", "Review the pull request", "Book the venue", "Pay the invoice"], initial, enter, exit, empty),
-            View("Projects", ["Presto 0.2", "Gallery restyle", "Docs pass"], initial, enter, exit, empty),
-            View("Archive · 300 rows, virtualized", [.. Enumerable.Range(1, 300).Select(i => $"Archived task #{i}")], initial, enter, exit, empty, virtualized: true),
+            View("Inbox", ["Reply to Grace", "Review the pull request", "Book the venue", "Pay the invoice"], initial, enter, empty),
+            View("Projects", ["Presto 0.2", "Gallery restyle", "Docs pass"], initial, enter, empty),
+            View("Archive · 300 rows, virtualized", [.. Enumerable.Range(1, 300).Select(i => $"Archived task #{i}")], initial, enter, empty, virtualized: true),
         ];
+        ExitOrderPicker.ItemsSource = ExitOrders.Select(order => order.Name);
+        ExitOrderPicker.SelectedIndex = 0;
+        HostModePicker.SelectedIndex = (int)PresenceMode.Wait;
         Host.Content = _views[0].View;
         Swapper.Content = _panels[0];
         WizardCode.Code = $"{Snippets.LifecycleWizard}\n\n{Snippets.LifecycleStep}";
@@ -69,11 +71,19 @@ public partial class LifecyclePage : UserControl
         ShowStep(0);
     }
 
-    private (string Title, ObservableCollection<string> Rows, ItemsControl List, Control View) Current => _views[_view];
+    private (string Title, ObservableCollection<string> Rows, ItemsControl List, Panel ListAndEmptyLine, Control View) Current => _views[_view];
+
+    private (AnimationBuilder, string) Exit((StaggerFrom From, string Name) order)
+    {
+        var from = order.From;
+        var (exit, code) = Snippet.Of(Presto.Build().Opacity(to: 0).X(to: 60).Duration(300).Ease(Eases.InQuad).Delay(Presto.Stagger(40, new() { From = from })));
+        exit.OnBegin(timer => Moments.Record("Exit", ExitTint, RowOf(timer)));
+        return (exit, code.Replace("From = from", $"From = StaggerFrom.{order.Name}"));
+    }
 
     /// <remarks>A <see cref="ListBox"/> virtualizes its rows, so scrolling realizes and recycles them, which plays nothing.</remarks>
-    private static (string, ObservableCollection<string>, ItemsControl, Control) View(
-        string title, string[] rows, AnimationBuilder initial, AnimationBuilder enter, AnimationBuilder exit, AnimationBuilder empty, bool virtualized = false)
+    private (string, ObservableCollection<string>, ItemsControl, Panel, Control) View(
+        string title, string[] rows, AnimationBuilder initial, AnimationBuilder enter, AnimationBuilder empty, bool virtualized = false)
     {
         var items = new ObservableCollection<string>(rows);
         // Bound rather than set once, because a virtualized list recycles a row's controls for another item.
@@ -82,7 +92,7 @@ public partial class LifecyclePage : UserControl
             var row = new Border { Classes = { "row" }, Background = InitialTint, Child = new TextBlock { [!TextBlock.TextProperty] = new CompiledBinding() } };
             Presence.SetInitial(row, initial);
             Presence.SetEnter(row, enter);
-            Presence.SetExit(row, exit);
+            Presence.SetExit(row, _exit);
             return row;
         });
         ItemsControl list = virtualized
@@ -92,14 +102,36 @@ public partial class LifecyclePage : UserControl
         Presence.SetArrive(emptyLine, empty);
         items.CollectionChanged += (_, _) => emptyLine.IsVisible = items.Count == 0;
         var listAndEmptyLine = new Panel { Children = { list, emptyLine } };
-        Presence.SetMode(listAndEmptyLine, PresenceMode.Wait);
         var view = new Border
         {
             Classes = { "view" },
             Child = new StackPanel { Children = { new TextBlock { Classes = { "title" }, Text = title }, listAndEmptyLine } },
         };
-        return (title, items, list, view);
+        return (title, items, list, listAndEmptyLine, view);
     }
+
+    private void ExitOrderChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        (_exit, _exitCode) = Exit(ExitOrders[ExitOrderPicker.SelectedIndex]);
+        foreach (var view in _views)
+            foreach (var row in view.List.GetVisualDescendants().OfType<Border>().Where(row => row.Classes.Contains("row")))
+                Presence.SetExit(row, _exit);
+        PrintRowCode();
+    }
+
+    private void HostModeChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        foreach (var view in _views) Presence.SetMode(view.ListAndEmptyLine, (PresenceMode)HostModePicker.SelectedIndex);
+        PrintRowCode();
+    }
+
+    private void PrintRowCode() => RowCode.Code = $"""
+        Presence.SetInitial(row, {_code.Initial});
+        Presence.SetEnter(row, {_code.Enter});
+        Presence.SetExit(row, {_exitCode});
+        Presence.SetMode(listAndEmptyLine, PresenceMode.{(PresenceMode)HostModePicker.SelectedIndex});
+        Presence.SetArrive(emptyLine, {_code.Empty});
+        """;
 
     private static string RowOf(Timer timer) =>
         ((Animation)timer).Targets[0] is Control { DataContext: string text } ? $"\"{text}\"" : "a row";
@@ -215,6 +247,14 @@ public partial class LifecyclePage : UserControl
     private void RemoveRow(object? sender, RoutedEventArgs e)
     {
         if (ShownRange() is { } shown) Current.Rows.RemoveAt(Random.Shared.Next(shown.First, shown.Last + 1));
+    }
+
+    private void RemoveThree(object? sender, RoutedEventArgs e)
+    {
+        if (ShownRange() is not { } shown) return;
+        // Last first, so the earlier indices still name the same rows.
+        foreach (var index in new[] { 4, 2, 0 }.Select(step => shown.First + step).Where(index => index <= shown.Last))
+            Current.Rows.RemoveAt(index);
     }
 
     /// <summary>

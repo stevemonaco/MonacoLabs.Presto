@@ -1,10 +1,14 @@
+using System.Collections.Specialized;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using MonacoLabs.Presto;
 using MonacoLabs.Presto.Controls;
 using PrestoGallery.Showcase.Pages;
@@ -169,6 +173,55 @@ public sealed class StorefrontPageTests
         SceneHarness.Close(window);
     }
 
+    [AvaloniaFact]
+    public void PickingACategoryRemovesEachHiddenCardAndNeverResets()
+    {
+        var (window, page) = Loaded();
+        List<NotifyCollectionChangedAction> changes = [];
+        page.ViewModel.Shown.CollectionChanged += (_, e) => changes.Add(e.Action);
+
+        SceneHarness.Click(window, Chip(page, "Outdoor"));
+
+        Assert.Equal(4, page.ViewModel.Shown.Count);
+        Assert.Equal(Enumerable.Repeat(NotifyCollectionChangedAction.Remove, 8), changes);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TheLeavingCardsExitFromTheMiddleOfTheBatchOutward(bool reduced)
+    {
+        var (window, page) = Loaded();
+        using var motion = reduced ? ReducedMotion.On() : null;
+        var leaving = page.ViewModel.Shown.Where(product => product.Category != "Outdoor").ToArray();
+
+        SceneHarness.Click(window, Chip(page, "Outdoor"));
+        Dispatcher.UIThread.RunJobs();
+
+        var delays = SceneHarness.GhostDelays<Product>(page);
+        double[] centerOut = [122.5, 87.5, 52.5, 17.5, 17.5, 52.5, 87.5, 122.5];
+        Assert.Equal(reduced ? new double[leaving.Length] : centerOut, leaving.Select(product => delays[product]));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void UnpickingBringsTheCardsBackInCatalogOrder()
+    {
+        var (window, page) = Loaded();
+        var catalog = page.ViewModel.Shown.ToArray();
+
+        SceneHarness.Click(window, Chip(page, "Travel"));
+        TestFrames.Tick(60);
+        SceneHarness.Click(window, Chip(page, "Travel"));
+        TestFrames.Tick(60);
+
+        Assert.Equal(catalog, page.ViewModel.Shown);
+        var slots = Cards(page).Select(card => (Product: (Product)card.DataContext!, Slot: card.TranslatePoint(default, page)!.Value));
+        Assert.Equal(catalog, slots.OrderBy(card => card.Slot.Y).ThenBy(card => card.Slot.X).Select(card => card.Product));
+        SceneHarness.Close(window);
+    }
+
     private static (Window Window, StorefrontPage Page) Loaded()
     {
         var page = new StorefrontPage();
@@ -182,6 +235,9 @@ public sealed class StorefrontPageTests
 
     private static Button Button(ILogical parent, string content) =>
         parent.GetLogicalDescendants().OfType<Button>().First(button => Equals(button.Content, content));
+
+    private static ToggleButton Chip(ILogical page, string category) =>
+        page.GetLogicalDescendants().OfType<ToggleButton>().First(chip => Equals(chip.Content, category));
 
     // The card's picture, clear of its buttons.
     private static Point Top(Border card, Visual window) => card.TranslatePoint(new Point(card.Bounds.Width / 2, 40), window)!.Value;

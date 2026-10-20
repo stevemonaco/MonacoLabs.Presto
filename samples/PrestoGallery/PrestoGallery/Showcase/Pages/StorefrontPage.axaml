@@ -149,7 +149,7 @@
                                 <Border Classes="product" Classes.soldout="{Binding SoldOut}"
                                         presto:Presence.Initial="{presto:Fade Direction=Up, Stagger=40}"
                                         presto:Presence.Enter="{presto:Scale}"
-                                        presto:Presence.Exit="{presto:Scale}"
+                                        presto:Presence.Exit="{x:Static local:StorefrontPage.CardExit}"
                                         presto:Motion.Hover="{presto:Lift}"
                                         presto:Motion.Press="{presto:PressIn}"
                                         presto:Motion.Focus="{presto:Glow}"

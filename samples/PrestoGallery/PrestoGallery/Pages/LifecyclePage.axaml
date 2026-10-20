@@ -119,13 +119,21 @@
                 <Button Content="Show this view again" Click="ShowAgain" Margin="0,0,8,8" />
                 <Button Content="Add row" Click="AddRow" Margin="0,0,8,8" />
                 <Button Content="Remove row" Click="RemoveRow" Margin="0,0,8,8" />
+                <Button Content="Remove three" Click="RemoveThree" Margin="0,0,8,8" />
                 <Button Content="Clear rows" Click="ClearRows" Margin="0,0,8,8" />
+                <TextBlock Classes="caption" Text="Exit from" VerticalAlignment="Center" Margin="8,0,8,8" />
+                <ComboBox x:Name="ExitOrderPicker" Width="110" SelectionChanged="ExitOrderChanged" Margin="0,0,8,8" />
+                <TextBlock Classes="caption" Text="Host" VerticalAlignment="Center" Margin="8,0,8,8" />
+                <ComboBox x:Name="HostModePicker" Width="110" SelectionChanged="HostModeChanged" Margin="0,0,8,8">
+                    <ComboBoxItem Content="Sync" />
+                    <ComboBoxItem Content="Wait" />
+                </ComboBox>
             </WrapPanel>
 
             <showcase:CodePanel x:Name="RowCode" />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Every arrival and departure of a row is classified once, by one rule, and plays only its own builder. Initial: the row appears with its view, when you navigate here, navigate between the views, or show a view again; rows arriving in one pass stagger by arrival order. Enter: a row arrives on its own into a view that has already loaded (Add row). Exit: a row leaves on its own while its list stays (Remove row), played on a ghost. Clear rows removes every row in one change, so their ghosts leave as one batch, top first in turn, by the exit's Presto.Stagger; the list and its &quot;No rows&quot; line share a panel with Presence.Mode=&quot;Wait&quot;, so the line fades in only once the last ghost ends. Unload: the whole view leaves with Navigate, and nothing plays. The log is written by each builder's OnBegin, so it shows what Presence decided rather than what the button meant." />
+                       Text="Every arrival and departure of a row is classified once, by one rule, and plays only its own builder. Initial: the row appears with its view, when you navigate here, navigate between the views, or show a view again; rows arriving in one pass stagger by arrival order. Enter: a row arrives on its own into a view that has already loaded (Add row). Exit: a row leaves on its own while its list stays (Remove row), played on a ghost. Rows removed together leave as one batch, ordered by where their ghosts stand, top to bottom, so the exit's Presto.Stagger runs from the picked end: Remove three takes every other row on screen in one call, and Clear rows takes them all; each exit logs the row it plays on, so the log shows the batch order. The list and its &quot;No rows&quot; line share a host whose Presence.Mode the Host picker sets: with Wait, the rows leave in the picked order and only then does the line fade in; with Sync, the line fades in while the rows are still leaving. Unload: the whole view leaves with Navigate, and nothing plays. The log is written by each builder's OnBegin, so it shows what Presence decided rather than what the button meant." />
 
             <TextBlock Classes="caption" TextWrapping="Wrap"
                        Text="Navigate to the third view, Archive, a ListBox of 300 rows that virtualizes: only the rows on screen exist, and scrolling recycles their controls for other items. Scroll it and the log stays quiet: a row realized or recycled by scrolling is neither an arrival nor a departure, because its item never left the list. Inside a list, Presence enters a row only when its item was just added and exits one only when its item was just removed, so Add row and Remove row still animate; they act on the rows currently on screen." />

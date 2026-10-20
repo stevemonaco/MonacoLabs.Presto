@@ -101,6 +101,8 @@
                         <!-- /snippet -->
                     </StackPanel>
                 </Border>
+                <TextBlock Classes="caption" TextWrapping="Wrap"
+                           Text="Place order's width animates in whole device-pixel steps measured from where it started, so both edges move together and the label does not shake." />
             </StackPanel>
 
             <StackPanel Grid.Column="1" Spacing="8">

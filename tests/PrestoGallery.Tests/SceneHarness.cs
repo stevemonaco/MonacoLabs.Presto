@@ -10,6 +10,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Platform;
+using Avalonia.VisualTree;
 using MonacoLabs.Presto;
 using MonacoLabs.Presto.Compositor;
 using MonacoLabs.Presto.Tests;
@@ -96,6 +97,14 @@ internal static class SceneHarness
     /// <summary>The overlay canvases the particle recipes draw into over <paramref name="visual"/>'s window.</summary>
     public static CompositorCanvas[] ParticleOverlays(Visual visual) =>
         OverlayLayer.GetOverlayLayer(visual)!.Children.OfType<CompositorCanvas>().ToArray();
+
+    /// <summary>The overlay hosts Presence draws exit ghosts into over <paramref name="visual"/>'s window.</summary>
+    public static IEnumerable<Canvas> Ghosts(Visual visual) => OverlayLayer.GetOverlayLayer(visual)!.Children.OfType<Canvas>();
+
+    /// <summary>Each exit ghost's delay, keyed by the item it stands in for.</summary>
+    public static Dictionary<T, double> GhostDelays<T>(Visual page) where T : notnull =>
+        Ghosts(page).SelectMany(host => host.GetVisualDescendants().OfType<Image>())
+            .Where(ghost => ghost.DataContext is T).ToDictionary(ghost => (T)ghost.DataContext!, ghost => Assert.Single(Presto.GetAnimations(ghost)).Delay);
 
     /// <summary>The number a readout is showing.</summary>
     public static double Number(TextBlock text) => double.Parse(text.Text!, CultureInfo.InvariantCulture);
