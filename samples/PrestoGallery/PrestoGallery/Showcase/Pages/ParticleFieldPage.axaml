@@ -12,15 +12,15 @@
         </Border>
 
         <Border Grid.Row="1" Classes="rail showcase">
-            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14">
-                <TextBlock Grid.Column="0" Classes="mono" Margin="0" Width="118"
+            <WrapPanel ItemSpacing="14" LineSpacing="8">
+                <TextBlock Classes="mono" Margin="0" Width="118"
                            Text="{Binding #CountSlider.Value, StringFormat='{}{0:0} particles'}" />
-                <Slider Grid.Column="1" x:Name="CountSlider" Minimum="500" Maximum="20000"
+                <Slider x:Name="CountSlider" Width="200" Minimum="500" Maximum="20000"
                         TickFrequency="500" IsSnapToTickEnabled="True"
                         VerticalAlignment="Center" ValueChanged="CountChanged" />
-                <Button Grid.Column="2" Content="Freeze UI thread for 2 s" Click="Freeze" />
-                <showcase:FpsMeter Grid.Column="3" x:Name="Meter" VerticalAlignment="Center" />
-            </Grid>
+                <Button Content="Freeze UI thread for 2 s" Click="Freeze" />
+                <showcase:FpsMeter x:Name="Meter" VerticalAlignment="Center" />
+            </WrapPanel>
         </Border>
 
         <showcase:CodePanel Grid.Row="2" x:Name="HowCode" Header="How it's built" IsExpanded="False" MaxHeight="280" />

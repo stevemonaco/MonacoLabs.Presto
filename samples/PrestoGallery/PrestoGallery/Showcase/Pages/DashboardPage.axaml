@@ -16,54 +16,65 @@
         <Style Selector="TextBlock.readout">
             <Setter Property="FontSize" Value="30" />
         </Style>
+        <Style Selector="UniformGrid#Tiles">
+            <Setter Property="Columns" Value="4" />
+        </Style>
+        <ContainerQuery Name="page" Query="max-width:599">
+            <Style Selector="UniformGrid#Tiles">
+                <Setter Property="Columns" Value="2" />
+            </Style>
+        </ContainerQuery>
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer>
-        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
-            <Border Grid.Row="0" Classes="rail showcase">
-                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
-                    <Button Grid.Column="0" x:Name="NewData" Content="New data" Click="PushRound" />
-                    <ToggleSwitch Grid.Column="2" x:Name="Live" VerticalAlignment="Center"
-                                  OffContent="live off" OnContent="live · 800 ms" IsCheckedChanged="LiveChanged" />
-                    <TextBlock Grid.Column="3" x:Name="FeedText" Classes="mono" Margin="0"
-                               VerticalAlignment="Center" Text="round 0 · feed 0 ms" />
-                </Grid>
-            </Border>
+    <Grid Container.Name="page" Container.Sizing="Width" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+        <Border Grid.Row="0" Classes="rail showcase">
+            <WrapPanel ItemSpacing="12" LineSpacing="8">
+                <Button x:Name="NewData" Content="New data" Click="PushRound" />
+                <ToggleSwitch x:Name="Live" VerticalAlignment="Center"
+                              OffContent="live off" OnContent="live · 800 ms" IsCheckedChanged="LiveChanged" />
+                <TextBlock x:Name="FeedText" Classes="mono" Margin="0"
+                           VerticalAlignment="Center" Text="round 0 · feed 0 ms" />
+            </WrapPanel>
+        </Border>
 
-            <Grid Grid.Row="1" x:Name="Tiles" ColumnDefinitions="*,*,*,*" ColumnSpacing="10" />
+        <UniformGrid Grid.Row="1" x:Name="Tiles" ColumnSpacing="10" RowSpacing="10" />
 
-            <Grid Grid.Row="2" ColumnDefinitions="*,250" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
-                <Border Grid.Row="0" Grid.Column="0" Classes="stage" Height="222">
+        <showcase:SplitPanel Grid.Row="2" Widths="*,250" Spacing="10">
+            <StackPanel Spacing="10">
+                <Border Classes="stage" Height="222">
                     <Grid RowDefinitions="Auto,*">
                         <TextBlock Grid.Row="0" Classes="eyebrow showcase" Text="THROUGHPUT BY CHANNEL" />
-                        <StackPanel Grid.Row="1" x:Name="BarField" Orientation="Horizontal" Spacing="14"
-                                    HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                        <Viewbox StretchDirection="DownOnly" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Bottom">
+                            <StackPanel x:Name="BarField" Orientation="Horizontal" Spacing="14" />
+                        </Viewbox>
                     </Grid>
                 </Border>
 
-                <Border Grid.Row="1" Grid.Column="0" Classes="stage" Height="148">
+                <Border Classes="stage" Height="148">
                     <Grid RowDefinitions="Auto,*">
                         <TextBlock Grid.Row="0" Classes="eyebrow showcase" Text="SESSIONS, LAST HOUR" />
-                        <Canvas Grid.Row="1" x:Name="Plot" Width="600" Height="96" HorizontalAlignment="Center" VerticalAlignment="Bottom">
-                            <Path x:Name="Spark" Stretch="None" StrokeThickness="3"
-                                  Stroke="{x:Static showcase:Palette.Aqua}"
-                                  StrokeLineCap="Round" StrokeJoin="Round" />
-                        </Canvas>
+                        <Viewbox StretchDirection="DownOnly" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Bottom">
+                            <Canvas x:Name="Plot" Width="600" Height="96">
+                                <Path x:Name="Spark" Stretch="None" StrokeThickness="3"
+                                      Stroke="{x:Static showcase:Palette.Aqua}"
+                                      StrokeLineCap="Round" StrokeJoin="Round" />
+                            </Canvas>
+                        </Viewbox>
                     </Grid>
                 </Border>
+            </StackPanel>
 
-                <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Classes="stage">
-                    <StackPanel Spacing="10">
-                        <TextBlock Classes="eyebrow showcase" Text="MIX" />
-                        <Canvas x:Name="DonutStage" Width="180" Height="180" HorizontalAlignment="Center" />
-                        <StackPanel x:Name="Legend" Spacing="6" />
-                    </StackPanel>
-                </Border>
-            </Grid>
+            <Border Classes="stage">
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="eyebrow showcase" Text="MIX" />
+                    <Canvas x:Name="DonutStage" Width="180" Height="180" HorizontalAlignment="Center" />
+                    <StackPanel x:Name="Legend" Spacing="6" />
+                </StackPanel>
+            </Border>
+        </showcase:SplitPanel>
 
-            <showcase:TransportBar Grid.Row="3" x:Name="Bar" />
+        <showcase:TransportBar Grid.Row="3" x:Name="Bar" />
 
-            <showcase:CodePanel Grid.Row="4" x:Name="HowCode" Header="How it's built" IsExpanded="False" />
-        </Grid>
-    </ScrollViewer>
+        <showcase:CodePanel Grid.Row="4" x:Name="HowCode" Header="How it's built" IsExpanded="False" />
+    </Grid>
 </showcase:ShowcasePage>

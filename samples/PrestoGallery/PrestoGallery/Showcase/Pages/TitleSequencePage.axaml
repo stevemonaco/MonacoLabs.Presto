@@ -9,10 +9,10 @@
         <StreamGeometry x:Key="MarkGeometry">M 44,14 L 114,62 L 44,110 L 64,62 Z</StreamGeometry>
     </showcase:ShowcasePage.Resources>
 
-    <ScrollViewer>
-        <StackPanel Spacing="12">
-            <Border Classes="stage" Padding="0" Height="420">
-                <Grid>
+    <StackPanel Spacing="12">
+        <Border Classes="stage" Padding="0">
+            <Viewbox StretchDirection="DownOnly">
+                <Grid Width="980" Height="420">
                     <Panel x:Name="Camera">
                         <Canvas x:Name="DotField" Width="980" Height="420"
                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -70,26 +70,26 @@
                     <Border x:Name="BottomBar" Height="30" VerticalAlignment="Bottom" RenderTransformOrigin="50%,100%"
                             Background="{x:Static showcase:Palette.Background}" />
                 </Grid>
-            </Border>
+            </Viewbox>
+        </Border>
 
-            <Border Classes="rail showcase">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Classes="eyebrow showcase" Text="SEEK" VerticalAlignment="Center" Margin="2,0,6,0" />
-                    <Button Content="open" Tag="open" Click="SeekLabel" />
-                    <Button Content="draw" Tag="draw" Click="SeekLabel" />
-                    <Button Content="mark" Tag="mark" Click="SeekLabel" />
-                    <Button Content="title" Tag="title" Click="SeekLabel" />
-                    <Button Content="subtitle" Tag="subtitle" Click="SeekLabel" />
-                    <Button Content="shine" Tag="shine" Click="SeekLabel" />
-                    <Button Content="cards" Tag="cards" Click="SeekLabel" />
-                    <Button Content="out" Tag="out" Click="SeekLabel" />
-                    <TextBlock x:Name="BeatText" Classes="mono" Margin="10,0,0,0" Text="out · 0 crossings" />
-                </StackPanel>
-            </Border>
+        <Border Classes="rail showcase">
+            <WrapPanel ItemSpacing="6" LineSpacing="8">
+                <TextBlock Classes="eyebrow showcase" Text="SEEK" VerticalAlignment="Center" Margin="2,0,6,0" />
+                <Button Content="open" Tag="open" Click="SeekLabel" />
+                <Button Content="draw" Tag="draw" Click="SeekLabel" />
+                <Button Content="mark" Tag="mark" Click="SeekLabel" />
+                <Button Content="title" Tag="title" Click="SeekLabel" />
+                <Button Content="subtitle" Tag="subtitle" Click="SeekLabel" />
+                <Button Content="shine" Tag="shine" Click="SeekLabel" />
+                <Button Content="cards" Tag="cards" Click="SeekLabel" />
+                <Button Content="out" Tag="out" Click="SeekLabel" />
+                <TextBlock x:Name="BeatText" Classes="mono" Margin="10,0,0,0" Text="out · 0 crossings" />
+            </WrapPanel>
+        </Border>
 
-            <showcase:TransportBar x:Name="Bar" />
+        <showcase:TransportBar x:Name="Bar" />
 
-            <showcase:CodePanel Header="How it's built" IsExpanded="False" Code="{x:Static showcase:Snippets.TitleSequenceTimeline}" />
-        </StackPanel>
-    </ScrollViewer>
+        <showcase:CodePanel Header="How it's built" IsExpanded="False" Code="{x:Static showcase:Snippets.TitleSequenceTimeline}" />
+    </StackPanel>
 </showcase:ShowcasePage>

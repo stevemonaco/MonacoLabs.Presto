@@ -103,10 +103,10 @@ public sealed class PresenceExitBatchTests : BridgeTestBase
     public void ASingleRemovalPlaysAtIndexZeroOfOne()
     {
         var items = new ObservableCollection<string>(Five);
-        (int Index, int Total)? seen = null;
-        var window = Show(List(items, FadeOut(new FunctionValue((_, index, total) =>
+        (object? Item, int Index, int Total)? seen = null;
+        var window = Show(List(items, FadeOut(new FunctionValue((target, index, total) =>
         {
-            seen = (index, total);
+            seen = (((Image)target).DataContext, index, total);
             return 0;
         }))));
 
@@ -114,7 +114,7 @@ public sealed class PresenceExitBatchTests : BridgeTestBase
         Dispatcher.UIThread.RunJobs();
 
         Assert.Single(Ghosts(window));
-        Assert.Equal((0, 1), seen);
+        Assert.Equal(("c", 0, 1), seen);
     }
 
     [AvaloniaFact]

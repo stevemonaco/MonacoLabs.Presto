@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <Compile Include="..\MonacoLabs.Presto.Avalonia.Tests\CompositorClock.cs" Link="CompositorClock.cs" />
+    <Compile Include="..\MonacoLabs.Presto.Avalonia.Tests\HeadlessDrawing.cs" Link="HeadlessDrawing.cs" />
   </ItemGroup>
 
   <ItemGroup>

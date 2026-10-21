@@ -62,6 +62,17 @@ public sealed class MainViewModelTests : TempoTestBase
     }
 
     [Fact]
+    public async Task GoBackOnFocusReturnsFalseAndStays()
+    {
+        var vm = await LoadAsync();
+
+        Assert.False(vm.GoBack());
+
+        Assert.Equal(AppView.Focus, vm.CurrentView);
+        Assert.False(vm.IsBack);
+    }
+
+    [Fact]
     public async Task AReorderInTheCollectionPersists()
     {
         var vm = await LoadWithTasksAsync("A", "B", "C");

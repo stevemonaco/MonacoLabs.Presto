@@ -32,60 +32,60 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer>
-        <StackPanel Spacing="16">
-            <Border Classes="stage">
-                <Viewbox StretchDirection="DownOnly">
-                    <Grid Width="600" Height="240">
-                        <Ellipse x:Name="Sun" Width="44" Height="44" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,8,0"
-                                 Stroke="{x:Static showcase:Palette.Aqua}" StrokeThickness="3" StrokeDashArray="3,2" />
-                        <Panel x:Name="Sky" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,56,0,0">
-                            <Ellipse x:Name="Comet" Width="18" Height="18" Fill="{x:Static showcase:Palette.Violet}" />
-                        </Panel>
+    <StackPanel Spacing="16">
+        <Border Classes="stage">
+            <Viewbox StretchDirection="DownOnly">
+                <Grid Width="600" Height="240">
+                    <Ellipse x:Name="Sun" Width="44" Height="44" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,8,0"
+                             Stroke="{x:Static showcase:Palette.Aqua}" StrokeThickness="3" StrokeDashArray="3,2" />
+                    <Panel x:Name="Sky" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,56,0,0">
+                        <Ellipse x:Name="Comet" Width="18" Height="18" Fill="{x:Static showcase:Palette.Violet}" />
+                    </Panel>
 
-                        <Border Height="2" VerticalAlignment="Bottom" Background="{x:Static showcase:Palette.Border}" />
-                        <Border x:Name="PadA" Classes="pad" Margin="-8,0,0,0" />
-                        <Border x:Name="PadB" Classes="pad" Margin="242,0,0,0" />
-                        <Border x:Name="PadC" Classes="pad" Margin="432,0,0,0" />
-                        <StackPanel x:Name="Bars" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,4,2">
-                            <Border Classes="bar" Background="{x:Static showcase:Palette.Accent}" />
-                            <Border Classes="bar" Background="{x:Static showcase:Palette.AccentBright}" />
-                            <Border Classes="bar" Background="{x:Static showcase:Palette.Aqua}" />
-                            <Border Classes="bar" Background="{x:Static showcase:Palette.AccentBright}" />
-                            <Border Classes="bar" Background="{x:Static showcase:Palette.Accent}" />
-                        </StackPanel>
-                        <Border x:Name="Hopper" Classes="swatch" Width="40" Height="40" HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                                Margin="0,0,0,2" Background="{x:Static showcase:Palette.Amber}" />
-                    </Grid>
-                </Viewbox>
-            </Border>
+                    <Border Height="2" VerticalAlignment="Bottom" Background="{x:Static showcase:Palette.Border}" />
+                    <Border x:Name="PadA" Classes="pad" Margin="-8,0,0,0" />
+                    <Border x:Name="PadB" Classes="pad" Margin="242,0,0,0" />
+                    <Border x:Name="PadC" Classes="pad" Margin="432,0,0,0" />
+                    <StackPanel x:Name="Bars" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,4,2">
+                        <Border Classes="bar" Background="{x:Static showcase:Palette.Accent}" />
+                        <Border Classes="bar" Background="{x:Static showcase:Palette.AccentBright}" />
+                        <Border Classes="bar" Background="{x:Static showcase:Palette.Aqua}" />
+                        <Border Classes="bar" Background="{x:Static showcase:Palette.AccentBright}" />
+                        <Border Classes="bar" Background="{x:Static showcase:Palette.Accent}" />
+                    </StackPanel>
+                    <Border x:Name="Hopper" Classes="swatch" Width="40" Height="40" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                            Margin="0,0,0,2" Background="{x:Static showcase:Palette.Amber}" />
+                </Grid>
+            </Viewbox>
+        </Border>
 
-            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12">
-                <Button x:Name="PlayButton" Content="Play" Click="TogglePlay" MinWidth="80" />
-                <Button Grid.Column="1" Content="Restart" Click="Restart" />
-                <Slider x:Name="ScrubSlider" Grid.Column="2" Minimum="0" Maximum="1" ValueChanged="Scrub" />
-            </Grid>
+        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12">
+            <Button x:Name="PlayButton" Content="Play" Click="TogglePlay" MinWidth="80" />
+            <Button Grid.Column="1" Content="Restart" Click="Restart" />
+            <Slider x:Name="ScrubSlider" Grid.Column="2" Minimum="0" Maximum="1" ValueChanged="Scrub" />
+        </Grid>
 
-            <UniformGrid Columns="4">
-                <StackPanel Spacing="2">
-                    <TextBlock Classes="caption" Text="CurrentTime" />
-                    <TextBlock x:Name="TimeText" Classes="readout" Text="0" />
-                </StackPanel>
-                <StackPanel Spacing="2">
-                    <TextBlock Classes="caption" Text="IterationProgress" />
-                    <TextBlock x:Name="ProgressText" Classes="readout" Text="0.00" />
-                </StackPanel>
-                <StackPanel Spacing="2">
-                    <TextBlock Classes="caption" Text="OnLoop calls" />
-                    <TextBlock x:Name="LoopsText" Classes="readout" Text="0" />
-                </StackPanel>
-                <StackPanel Spacing="2">
-                    <TextBlock Classes="caption" Text="OnUpdate calls / s" />
-                    <TextBlock x:Name="UpdatesText" Classes="readout" Text="0" />
-                </StackPanel>
-            </UniformGrid>
+        <UniformGrid Columns="4">
+            <StackPanel Spacing="2">
+                <TextBlock Classes="caption" Text="CurrentTime" />
+                <TextBlock x:Name="TimeText" Classes="readout" Text="0" />
+            </StackPanel>
+            <StackPanel Spacing="2">
+                <TextBlock Classes="caption" Text="IterationProgress" />
+                <TextBlock x:Name="ProgressText" Classes="readout" Text="0.00" />
+            </StackPanel>
+            <StackPanel Spacing="2">
+                <TextBlock Classes="caption" Text="OnLoop calls" />
+                <TextBlock x:Name="LoopsText" Classes="readout" Text="0" />
+            </StackPanel>
+            <StackPanel Spacing="2">
+                <TextBlock Classes="caption" Text="OnUpdate calls / s" />
+                <TextBlock x:Name="UpdatesText" Classes="readout" Text="0" />
+            </StackPanel>
+        </UniformGrid>
 
-            <Grid x:Name="Settings" ColumnDefinitions="Auto,Auto,32,Auto,Auto,32,Auto,*" ColumnSpacing="12">
+        <showcase:SplitPanel x:Name="Settings" Widths="Auto,Auto,*" Spacing="32">
+            <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="12">
                 <TextBlock Classes="caption" Text="PlaybackEase" />
                 <ComboBox x:Name="EaseBox" Grid.Column="1" SelectedIndex="0" SelectionChanged="SettingChanged">
                     <ComboBoxItem Content="linear" />
@@ -94,18 +94,22 @@
                     <ComboBoxItem Content="inOutBack" />
                     <ComboBoxItem Content="steps(8)" />
                 </ComboBox>
-                <TextBlock Classes="caption" Grid.Column="3" Text="FrameRate" />
-                <ComboBox x:Name="FpsBox" Grid.Column="4" SelectedIndex="0" SelectionChanged="SettingChanged">
+            </Grid>
+            <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="12">
+                <TextBlock Classes="caption" Text="FrameRate" />
+                <ComboBox x:Name="FpsBox" Grid.Column="1" SelectedIndex="0" SelectionChanged="SettingChanged">
                     <ComboBoxItem Content="60" />
                     <ComboBoxItem Content="24" />
                     <ComboBoxItem Content="12" />
                     <ComboBoxItem Content="6" />
                 </ComboBox>
-                <TextBlock Classes="caption" Grid.Column="6" Text="{Binding #RateSlider.Value, StringFormat='PlaybackRate {0:0.00}'}" />
-                <Slider x:Name="RateSlider" Grid.Column="7" Minimum="0.25" Maximum="2" Value="1" ValueChanged="RateChanged" />
             </Grid>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                <TextBlock Classes="caption" Text="{Binding #RateSlider.Value, StringFormat='PlaybackRate {0:0.00}'}" />
+                <Slider x:Name="RateSlider" Grid.Column="1" Minimum="0.25" Maximum="2" Value="1" ValueChanged="RateChanged" />
+            </Grid>
+        </showcase:SplitPanel>
 
-            <showcase:CodePanel x:Name="CodeText" />
-        </StackPanel>
-    </ScrollViewer>
+        <showcase:CodePanel x:Name="CodeText" />
+    </StackPanel>
 </showcase:ShowcasePage>

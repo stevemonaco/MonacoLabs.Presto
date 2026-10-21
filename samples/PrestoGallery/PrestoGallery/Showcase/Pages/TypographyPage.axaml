@@ -15,88 +15,97 @@
             <Setter Property="FontSize" Value="44" />
             <Setter Property="FontWeight" Value="Bold" />
         </Style>
+        <Style Selector="TextBlock#Wordmark">
+            <Setter Property="FontSize" Value="104" />
+        </Style>
+        <ContainerQuery Name="page" Query="max-width:479">
+            <Style Selector="TextBlock#Wordmark">
+                <Setter Property="FontSize" Value="60" />
+            </Style>
+            <Style Selector="TextBlock.headline">
+                <Setter Property="FontSize" Value="30" />
+            </Style>
+        </ContainerQuery>
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer>
-        <StackPanel Spacing="12">
-            <Border Classes="stage">
-                <StackPanel Spacing="16">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Classes="eyebrow showcase" Text="WORDS BY LINE · MASKED REVEAL THAT SURVIVES A REFLOW"
-                                   VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Content="Replay" Click="ReplayReveal" />
-                    </Grid>
-                    <TextBlock x:Name="Paragraph" FontSize="26" TextWrapping="Wrap" HorizontalAlignment="Left"
-                               Width="{Binding #WidthSlider.Value}"
-                               Foreground="{x:Static showcase:Palette.Ink}"
-                               presto:TextReveal.Mask="True"
-                               presto:Animate.OnAttached="{presto:WordFade LineStep=120, PieceStep=30, Duration=1100, Ease=outExpo}"
-                               Text="Every word of this paragraph is its own mask, and the words rise into them one line after another. Drag the width while it plays: the text re-wraps under the reveal and carries on from where it was." />
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                        <TextBlock Classes="mono" Text="{Binding #WidthSlider.Value, StringFormat='width {0:0}px'}" />
-                        <Slider x:Name="WidthSlider" Width="320" Minimum="280" Maximum="640" Value="600" />
+    <StackPanel Container.Name="page" Container.Sizing="Width" Spacing="12">
+        <Border Classes="stage">
+            <StackPanel Spacing="16">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="eyebrow showcase" Text="WORDS BY LINE · MASKED REVEAL THAT SURVIVES A REFLOW"
+                               VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Content="Replay" Click="ReplayReveal" />
+                </Grid>
+                <TextBlock x:Name="Paragraph" FontSize="26" TextWrapping="Wrap" HorizontalAlignment="Left"
+                           MaxWidth="{Binding #WidthSlider.Value}"
+                           Foreground="{x:Static showcase:Palette.Ink}"
+                           presto:TextReveal.Mask="True"
+                           presto:Animate.OnAttached="{presto:WordFade LineStep=120, PieceStep=30, Duration=1100, Ease=outExpo}"
+                           Text="Every word of this paragraph is its own mask, and the words rise into them one line after another. Drag the width while it plays: the text re-wraps under the reveal and carries on from where it was." />
+                <WrapPanel ItemSpacing="12" LineSpacing="6">
+                    <TextBlock Classes="mono" Text="{Binding #WidthSlider.Value, StringFormat='width {0:0}px'}" />
+                    <Slider x:Name="WidthSlider" Width="260" Minimum="280" Maximum="640" Value="600" />
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Classes="stage">
+            <StackPanel Spacing="16">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="eyebrow showcase" Text="CHARS · WORD ROTATOR"
+                               VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Content="Replay" Click="ReplayRotator" />
+                </Grid>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="14" Margin="0,12">
+                    <TextBlock Classes="headline" Text="Animate" Foreground="{x:Static showcase:Palette.Ink}" />
+                    <!-- The delay lets the leaving word's first letters drop before Animate slides over where they stand. -->
+                    <Border x:Name="Slot" Margin="0,0,0,-28" presto:Presence.Mode="Wait"
+                            presto:Animate.ContentSize="{presto:Reflow 600, Delay=380, Ease=outExpo}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border x:Name="WordmarkStage" Classes="stage">
+            <StackPanel Spacing="16">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                    <TextBlock Classes="eyebrow showcase" Text="CHARS · POINTER-REACTIVE WORDMARK"
+                               VerticalAlignment="Center" />
+                    <ComboBox x:Name="WordmarkMode" Grid.Column="1" SelectedIndex="0" SelectionChanged="WordmarkModeChanged">
+                        <ComboBoxItem Content="Lift" />
+                        <ComboBoxItem Content="Bulge" />
+                    </ComboBox>
+                    <Button x:Name="WordmarkReplay" Grid.Column="2" Content="Replay" Click="ReplayWordmark" />
+                </Grid>
+                <TextBlock x:Name="Wordmark" Text="MOTION" FontWeight="Black" LetterSpacing="6"
+                           HorizontalAlignment="Center" Margin="0,24,0,8"
+                           Foreground="{x:Static showcase:Palette.AccentDim}" />
+            </StackPanel>
+        </Border>
+
+        <Border Classes="stage">
+            <StackPanel Spacing="16">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="eyebrow showcase" Text="SCRAMBLE · DECODE TERMINAL"
+                               VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Content="Replay" Click="ReplayTerminal" />
+                </Grid>
+                <Border Background="{x:Static showcase:Palette.Background}" CornerRadius="8" Padding="18,14">
+                    <StackPanel Spacing="8">
+                        <StackPanel x:Name="TerminalLines" Spacing="6" />
+                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,8,0,0">
+                            <TextBlock Classes="mono" Text="status" />
+                            <TextBlock x:Name="Status" Grid.Column="1" Classes="mono" LineHeight="16"
+                                       Foreground="{x:Static showcase:Palette.Aqua}" />
+                            <TextBlock x:Name="Percent" Grid.Column="2" Classes="mono" Margin="0"
+                                       Foreground="{x:Static showcase:Palette.Ink}" />
+                            <TextBlock Grid.Column="3" Classes="mono" Text="%" />
+                        </Grid>
                     </StackPanel>
-                </StackPanel>
-            </Border>
+                </Border>
+            </StackPanel>
+        </Border>
 
-            <Border Classes="stage">
-                <StackPanel Spacing="16">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Classes="eyebrow showcase" Text="CHARS · WORD ROTATOR"
-                                   VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Content="Replay" Click="ReplayRotator" />
-                    </Grid>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="14" Margin="0,12">
-                        <TextBlock Classes="headline" Text="Animate" Foreground="{x:Static showcase:Palette.Ink}" />
-                        <!-- The delay lets the leaving word's first letters drop before Animate slides over where they stand. -->
-                        <Border x:Name="Slot" Margin="0,0,0,-28" presto:Presence.Mode="Wait"
-                                presto:Animate.ContentSize="{presto:Reflow 600, Delay=380, Ease=outExpo}" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <Border x:Name="WordmarkStage" Classes="stage">
-                <StackPanel Spacing="16">
-                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                        <TextBlock Classes="eyebrow showcase" Text="CHARS · POINTER-REACTIVE WORDMARK"
-                                   VerticalAlignment="Center" />
-                        <ComboBox x:Name="WordmarkMode" Grid.Column="1" SelectedIndex="0" SelectionChanged="WordmarkModeChanged">
-                            <ComboBoxItem Content="Lift" />
-                            <ComboBoxItem Content="Bulge" />
-                        </ComboBox>
-                        <Button x:Name="WordmarkReplay" Grid.Column="2" Content="Replay" Click="ReplayWordmark" />
-                    </Grid>
-                    <TextBlock x:Name="Wordmark" Text="MOTION" FontSize="104" FontWeight="Black" LetterSpacing="6"
-                               HorizontalAlignment="Center" Margin="0,24,0,8"
-                               Foreground="{x:Static showcase:Palette.AccentDim}" />
-                </StackPanel>
-            </Border>
-
-            <Border Classes="stage">
-                <StackPanel Spacing="16">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Classes="eyebrow showcase" Text="SCRAMBLE · DECODE TERMINAL"
-                                   VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Content="Replay" Click="ReplayTerminal" />
-                    </Grid>
-                    <Border Background="{x:Static showcase:Palette.Background}" CornerRadius="8" Padding="18,14">
-                        <StackPanel Spacing="8">
-                            <StackPanel x:Name="TerminalLines" Spacing="6" />
-                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,8,0,0">
-                                <TextBlock Classes="mono" Text="status" />
-                                <TextBlock x:Name="Status" Grid.Column="1" Classes="mono" LineHeight="16"
-                                           Foreground="{x:Static showcase:Palette.Aqua}" />
-                                <TextBlock x:Name="Percent" Grid.Column="2" Classes="mono" Margin="0"
-                                           Foreground="{x:Static showcase:Palette.Ink}" />
-                                <TextBlock Grid.Column="3" Classes="mono" Text="%" />
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </Border>
-
-            <showcase:CodePanel Header="How it's built" IsExpanded="False"
-                                Code="{x:Static showcase:Snippets.TypographyRotatorAndWordmark}" />
-        </StackPanel>
-    </ScrollViewer>
+        <showcase:CodePanel Header="How it's built" IsExpanded="False"
+                            Code="{x:Static showcase:Snippets.TypographyRotatorAndWordmark}" />
+    </StackPanel>
 </showcase:ShowcasePage>

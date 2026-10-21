@@ -81,6 +81,8 @@ Square.Animate(b => b                          // or Presto.Build()…Animate(Sq
 ```
 
 Values are written at `BindingPriority.Animation`, so `Revert()` puts the control's own values back exactly.
+An animated `Width` or `Height` on a layout-rounded control moves in whole device-pixel steps from where it started, so a
+centered control's two edges move together; `UseLayoutRounding="False"` opts out.
 
 ### The builder and parameter objects
 
@@ -1845,8 +1847,10 @@ items in [docs/BACKLOG.md](docs/BACKLOG.md).
 | **Android** — `net10.0-android` | Builds, installs and launches on a device (arm64, Android 16): the activity comes up with no startup exception. On an emulator (Pixel 7, Android 15) the gallery opens in its compact layout: Home fits the screen, tapping a row or a search result opens the page, the system back button returns Home, on Gestures an open sheet closes on the first back, and back at Home leaves the app. Other pages' rendering and touch gestures beyond those are unverified: the showcase pages (`[PLATFORM]`), filtered images and pixel transitions (`[BRIDGE-IMAGE]`), `Transformable` touch (`[BRIDGE-TRANSFORMABLE]`) and the hidden signal when backgrounded (`[BRIDGE-INIT]`). |
 | **iOS** — `net10.0-ios` | Compiles for `iossimulator-x64` only. Signing, packaging and running need a macOS build host, so nothing has been run (`[PLATFORM]`). |
 
-Five platform notes:
+Six platform notes:
 
+- **The gallery's Browser, Android and iOS heads have their own launch screens**: the Presto mark on its always-dark
+  background (on the web with a download progress bar). They have not yet been watched on a device or in a browser.
 - **On WebAssembly the render loop is not a thread.** `BrowserRenderTimer` drives the compositor from the single WASM
   thread that also runs the UI, so a `CompositorScene` or a `LottieView` with `RenderThread` set runs and draws there
   but does **not** survive a blocked UI thread — the busy-indicator guarantee is a desktop and mobile one. The same

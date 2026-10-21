@@ -5,7 +5,7 @@
                        xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
                        xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
                        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="620"
-                       x:Class="PrestoGallery.Showcase.Pages.BoardPage">
+                       x:Class="PrestoGallery.Showcase.Pages.BoardPage" FillsViewport="True">
     <showcase:ShowcasePage.Styles>
         <Style Selector="Border.stage">
             <Setter Property="MinHeight" Value="0" />
@@ -100,7 +100,7 @@
         <Border Grid.Row="1" Classes="rail showcase">
             <StackPanel Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="PRIORITIES" />
-                <ListBox x:Name="Priorities" Classes="priorities" presto:Reorder.Enabled="True"
+                <ListBox x:Name="Priorities" Classes="priorities" ScrollViewer.HorizontalScrollBarVisibility="Auto" presto:Reorder.Enabled="True"
                          presto:Reorder.Axis="Horizontal" presto:Animate.ItemLayout="{presto:Reflow}">
                     <ListBox.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -124,7 +124,7 @@
         </Border>
 
         <Border Grid.Row="2" Classes="stage">
-            <ScrollViewer x:Name="Scroller">
+            <ScrollViewer x:Name="Scroller" HorizontalScrollBarVisibility="Auto">
                 <Grid x:Name="Board" ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" HorizontalAlignment="Left">
                     <Border Grid.Column="3" x:Name="Bin" Classes="lane bin" presto:Drop.Group="lanes">
                         <TextBlock Classes="eyebrow showcase" Text="BIN" HorizontalAlignment="Center" />

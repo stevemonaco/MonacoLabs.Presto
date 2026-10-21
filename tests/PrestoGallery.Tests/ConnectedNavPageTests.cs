@@ -66,7 +66,7 @@ public sealed class ConnectedNavPageTests
         const int far = 13;
         var page = new ConnectedNavPage();
         var window = SceneHarness.Show(page, 1100, 700);
-        page.GetLogicalDescendants().OfType<ScrollViewer>().First().Offset = new Vector(0, 330);
+        ((ScrollViewer)page.GetControl<Border>("Host").Child!).Offset = new Vector(0, 330);
         TestFrames.Tick();
         var photo = Photo(Cards(page)[far]);
         var from = SceneHarness.Slot(photo, window);

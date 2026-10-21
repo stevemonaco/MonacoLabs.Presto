@@ -95,7 +95,7 @@ depends:
 - **BRIDGE-TARGETS-019** — `Visual.OpacityProperty` shall be clamped to 0–1 on every frame, so an overshooting ease holds at the ends.
   - Tests: `TargetAdapterTests.AnOvershootingEaseNeverWritesOpacityOutsideZeroToOne`
 - **BRIDGE-TARGETS-033** — When `Layoutable.WidthProperty` or `Layoutable.HeightProperty` is animated on an element whose `UseLayoutRounding` is true, each frame before the last shall write `from` plus a whole number of four-device-pixel steps at the element's render scaling, rounded to the nearest step; the last frame shall write the exact `to` value.
-  - Tests: `LayoutSizeSnapTests.ACenteredControlsEdgesMoveTogetherAndItsCenteredContentHoldsStill`, `LayoutSizeSnapTests.HeightSnapsToFourDevicePixelSteps`, `BridgeAllocationTests.ASnappedWidthTweenTicksWithinBudget`
+  - Tests: `LayoutSizeSnapTests.ACenteredControlsEdgesMoveTogetherAndItsCenteredContentHoldsStill`, `LayoutSizeSnapTests.SnappedSizesStepByFourDevicePixelsAtTheElementsScaling`, `LayoutSizeSnapTests.ANewScalingAppliesFromTheNextFrame`, `BridgeAllocationTests.ASnappedWidthTweenTicksWithinBudget`
 - **BRIDGE-TARGETS-034** — An element whose `UseLayoutRounding` is false shall get the raw interpolated size.
   - Tests: `LayoutSizeSnapTests.AnElementWithoutLayoutRoundingGetsTheRawSize`
 - **BRIDGE-TARGETS-020** — A property type with no codec shall be discrete (CORE-TARGETS `DiscreteCodec`), switching at the midpoint of eased progress.
@@ -175,6 +175,7 @@ depends:
 - **The scaling is read when the frame is written.** Reason: it is a read from the element's layout root, and a window moved to another monitor changes it mid-tween. Rejected: caching it when the tween resolves (stale after a monitor move).
 - **A control that is not centered moves in four-pixel steps.** Accepted: at the slow ends of an ease the far edge moves four device pixels at a time, which is not visible at animation speeds; a centered control's edges move two pixels each.
 - **A tween resting mid-way holds a snapped size.** Accepted: a timeline paused, scrubbed or settled on a label inside a size tween shows a size up to two device pixels from the raw value (the gallery's gestures card rests at 156 for a raw 154); only the tween's own end is exact.
+- **Centered content on a half-device-pixel tie can still move.** Accepted: where a child's centering offset falls exactly on a half device pixel (a 1-DIP border at 125% is 1.25 device pixels), Avalonia breaks the tie by floating-point noise, so centered content can move one device pixel between frames; no even step fixes it. Reason: on `SubmitButton` at 125% this is the only case left, and its label is fading during both moves, so the one-pixel move is hard to see. Rejected: biasing the snapped size so ties round one way (still a one-pixel move at the start and end of the tween, and it relies on Avalonia's rounding); restructuring `SubmitButton` so its label sits over the button rather than inside it (a control change for a one-pixel move).
 - **Property keys are canonicalized, not keyed on accessors.** See CORE-TARGETS.
 - **Types without a codec animate as discrete values.** See CORE-TARGETS.
 - **Params are init-only records with a key indexer.** See CORE-ANIMATION.

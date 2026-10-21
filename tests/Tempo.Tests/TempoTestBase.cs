@@ -101,16 +101,19 @@ public abstract class TempoTestBase : IDisposable
         var window = new MainWindow { DataContext = vm };
         if (size is { } launch)
             window.UseLaunchSize(launch);
-        window.Start(load, skipIntro: false);
+        window.View.Start(load, skipIntro: false);
         window.Show();
         return (window, vm);
     }
 
-    /// <returns>The milliseconds ticked until the window shows the shell.</returns>
-    protected static int TickUntilShell(MainWindow window, int limit, Action? eachFrame = null)
+    /// <returns>The milliseconds ticked until the view shows the shell.</returns>
+    protected static int TickUntilShell(MainWindow window, int limit, Action? eachFrame = null) => TickUntilShell(window.View, limit, eachFrame);
+
+    /// <returns>The milliseconds ticked until <paramref name="view"/> shows the shell.</returns>
+    protected static int TickUntilShell(MainView view, int limit, Action? eachFrame = null)
     {
         var elapsed = 0;
-        while (window.Content is not ShellView)
+        while (view.Content is not ShellView)
         {
             Assert.True(elapsed < limit, $"No handoff within {limit} ms.");
             TestFrames.Tick();

@@ -11,11 +11,14 @@ namespace Tempo.Tests;
 
 public static class TestAppBuilder
 {
-    /// <summary>Skia replaces the headless drawing stub, whose geometries report a <c>ContourLength</c> of 0.</summary>
+    /// <summary>
+    /// Skia replaces the headless drawing stub, whose geometries report a <c>ContourLength</c> of 0. <c>Fps = 1</c> all but stops the
+    /// headless render timer, which otherwise renders again inside <c>RunJobs</c> whenever a frame outlasts 16 ms of wall time.
+    /// </summary>
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<TestApp>()
         .UseSkia()
         .WithInterFont()
-        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false, FrameBufferFormat = PixelFormat.Bgra8888 });
+        .UseHeadless(new AvaloniaHeadlessPlatformOptions { Fps = 1, UseHeadlessDrawing = false, FrameBufferFormat = PixelFormat.Bgra8888 });
 }
 
 /// <summary>

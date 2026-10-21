@@ -335,6 +335,94 @@ public sealed class TasksViewTests : TempoTestBase
         await vm.FlushAsync();
     }
 
+    [AvaloniaFact]
+    public async Task UnderReducedMotionRestoredRowsFadeInTogether()
+    {
+        var (window, vm) = await ShowAsync(reduced: true);
+
+        vm.RestoreSampleData();
+        TestFrames.Tick();
+
+        var delays = Rows(window).Select(row => Assert.Single(MonacoLabs.Presto.Presto.GetAnimations(row)).Delay).ToList();
+        Assert.True(delays.Count > 1);
+        Assert.All(delays, delay => Assert.Equal(0, delay));
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaFact]
+    public async Task ADeletedRowsGhostFadesOverItsFirst120MsWhileItStillSlides()
+    {
+        var (window, vm) = await ShowAsync(reduced: false, "A", "B", "C");
+        var b = vm.Tasks[1];
+
+        vm.DeleteTaskCommand.Execute(b);
+        TestFrames.Tick();
+        var ghost = Assert.Single(Ghosts(window), g => g.DataContext == b);
+        var exit = Assert.Single(MonacoLabs.Presto.Presto.GetAnimations(ghost));
+        Assert.Equal(0, exit.Delay);
+        while (exit.CurrentTime < 120)
+            TestFrames.Tick();
+
+        Assert.InRange(ghost.Opacity, 0, .1);
+        Assert.InRange(Convert.ToDouble(MonacoLabs.Presto.Presto.Get(ghost, "X", withUnit: false)), -20, -.5);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaFact]
+    public async Task EveryGhostInABatchFadesAtOnceWhileOnlyTheSlideIsStaggered()
+    {
+        var (window, vm) = await ShowAsync(reduced: false, "A", "B", "C", "D", "E", "F");
+        var (top, last) = (vm.Tasks[0], vm.Tasks[^1]);
+
+        vm.ClearAll();
+        TestFrames.Tick();
+        var ghosts = Ghosts(window).ToList();
+        var first = Assert.Single(MonacoLabs.Presto.Presto.GetAnimations(ghosts.Single(g => g.DataContext == top)));
+        while (first.CurrentTime < 120)
+            TestFrames.Tick();
+
+        Assert.All(ghosts, g => Assert.InRange(g.Opacity, 0, .1));
+        Assert.Equal(0, Convert.ToDouble(MonacoLabs.Presto.Presto.Get(ghosts.Single(g => g.DataContext == last), "X", withUnit: false)), 1);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TheClearLeavesTopRowFirstAndTheEmptyLineWaitsForTheLastGhost(bool reduced)
+    {
+        var (window, vm) = await ShowAsync(reduced, "A", "B", "C");
+        var order = vm.Tasks.ToList();
+        var empty = window.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text?.StartsWith("Nothing planned") == true);
+
+        vm.ClearAll();
+        TestFrames.Tick();
+
+        var ghosts = Ghosts(window).ToDictionary(g => g.DataContext!);
+        var exits = order.Select(task => Assert.Single(MonacoLabs.Presto.Presto.GetAnimations(ghosts[task]))).ToList();
+        if (reduced) Assert.All(exits, exit => Assert.Equal(0, exit.Delay));
+        else
+        {
+            while (exits[0].CurrentTime < 150)
+                TestFrames.Tick();
+            var slid = order.Select(task => Convert.ToDouble(MonacoLabs.Presto.Presto.Get(ghosts[task], "X", withUnit: false))).ToList();
+            Assert.True(slid[0] < slid[1] && slid[1] < slid[2], $"the rows slid to {string.Join(", ", slid)}");
+        }
+        for (var frame = 0; frame < 60 && Ghosts(window).Any(); frame++)
+        {
+            Assert.Equal(0, empty.Opacity);
+            TestFrames.Tick();
+        }
+        Assert.Empty(Ghosts(window));
+        TestFrames.Tick(60);
+        Assert.Equal(1, empty.Opacity);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]

@@ -175,7 +175,7 @@ public sealed class NavSearchTests
     {
         gallery.SearchText = "Scroll.Speed";
         TestFrames.Tick();
-        Assert.NotEmpty(Ghosts(window));
+        Assert.NotEmpty(SceneHarness.Ghosts(window));
         AssertSettled(window, nav);
 
         gallery.SearchText = "";
@@ -186,15 +186,13 @@ public sealed class NavSearchTests
     private static void AssertSettled(Window window, TreeView nav)
     {
         TestFrames.Tick(60);
-        Assert.Empty(Ghosts(window));
+        Assert.Empty(SceneHarness.Ghosts(window));
         Assert.All(nav.GetVisualDescendants().OfType<TreeViewItem>().Where(item => item.IsEffectivelyVisible), item =>
         {
             Assert.Equal(1, item.Opacity);
             Assert.All(item.GetVisualDescendants().OfType<TextBlock>(), text => Assert.Equal(1, text.Opacity));
         });
     }
-
-    private static IEnumerable<Canvas> Ghosts(Visual window) => OverlayLayer.GetOverlayLayer(window)!.Children.OfType<Canvas>();
 
     private static TextBox SearchBox(Window window) => window.GetVisualDescendants().OfType<TextBox>().Single(box => box.Name == "SearchBox");
 

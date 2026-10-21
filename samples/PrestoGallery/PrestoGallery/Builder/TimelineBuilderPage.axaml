@@ -5,31 +5,29 @@
                        xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
                        mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="1100"
                        x:Class="PrestoGallery.Builder.TimelineBuilderPage">
-    <ScrollViewer>
-        <StackPanel Spacing="16">
-            <TextBlock Classes="caption" Text="A timeline assembled from one shared builder and one lambda" />
-            <Border Classes="stage">
-                <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
-                    <Border x:Name="CardA" Classes="swatch" Width="64" Height="64" Background="{x:Static showcase:Palette.Accent}" />
-                    <Border x:Name="CardB" Classes="swatch" Width="64" Height="64" Background="{x:Static showcase:Palette.Aqua}" />
-                    <Border x:Name="CardC" Classes="swatch" Width="64" Height="64" Background="{x:Static showcase:Palette.Violet}" />
-                    <Border x:Name="CardD" Classes="swatch" Width="64" Height="64" Background="{x:Static showcase:Palette.Amber}" />
-                </StackPanel>
-            </Border>
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                <Button Content="Play" Click="Play" />
-                <Slider x:Name="ScrubSlider" Grid.Column="1" Minimum="0" Maximum="1" SmallChange="0.01" LargeChange="0.1"
-                        VerticalAlignment="Center" ValueChanged="Scrub" />
-            </Grid>
-            <showcase:CodePanel x:Name="TimelineCode" />
+    <StackPanel Spacing="16">
+        <TextBlock Classes="caption" Text="A timeline assembled from one shared builder and one lambda" />
+        <Border Classes="stage">
+            <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+                <Border x:Name="CardA" Classes="swatch" Width="64" Height="64" Background="{x:Static showcase:Palette.Accent}" />
+                <Border x:Name="CardB" Classes="swatch" Width="64" Height="64" Background="{x:Static showcase:Palette.Aqua}" />
+                <Border x:Name="CardC" Classes="swatch" Width="64" Height="64" Background="{x:Static showcase:Palette.Violet}" />
+                <Border x:Name="CardD" Classes="swatch" Width="64" Height="64" Background="{x:Static showcase:Palette.Amber}" />
+            </StackPanel>
+        </Border>
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+            <Button Content="Play" Click="Play" />
+            <Slider x:Name="ScrubSlider" Grid.Column="1" Minimum="0" Maximum="1" SmallChange="0.01" LargeChange="0.1"
+                    VerticalAlignment="Center" ValueChanged="Scrub" />
+        </Grid>
+        <showcase:CodePanel x:Name="TimelineCode" />
 
-            <TextBlock Classes="caption" Text="Spun on the compositor: it keeps turning while the UI thread is frozen" />
-            <Border Classes="stage">
-                <PathIcon x:Name="Gear" Data="{StaticResource GearIcon}" Width="56" Height="56"
-                          Foreground="{x:Static showcase:Palette.AccentBright}" HorizontalAlignment="Center" />
-            </Border>
-            <Button Classes="accent" Content="Freeze UI thread for 2 s" Click="Freeze" HorizontalAlignment="Left" />
-            <showcase:CodePanel x:Name="SpinCode" />
-        </StackPanel>
-    </ScrollViewer>
+        <TextBlock Classes="caption" Text="Spun on the compositor: it keeps turning while the UI thread is frozen" />
+        <Border Classes="stage">
+            <PathIcon x:Name="Gear" Data="{StaticResource GearIcon}" Width="56" Height="56"
+                      Foreground="{x:Static showcase:Palette.AccentBright}" HorizontalAlignment="Center" />
+        </Border>
+        <Button Classes="accent" Content="Freeze UI thread for 2 s" Click="Freeze" HorizontalAlignment="Left" />
+        <showcase:CodePanel x:Name="SpinCode" />
+    </StackPanel>
 </showcase:ShowcasePage>

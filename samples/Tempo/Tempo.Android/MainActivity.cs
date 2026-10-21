@@ -1,0 +1,15 @@
+using Android.App;
+using Android.Content.PM;
+using Avalonia.Android;
+
+namespace Tempo.Android;
+
+[Activity(
+    Label = "Tempo",
+    Theme = "@style/MyTheme.NoActionBar",
+    Icon = "@drawable/icon",
+    MainLauncher = true,
+    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode)]
+public class MainActivity : AvaloniaMainActivity
+{
+}

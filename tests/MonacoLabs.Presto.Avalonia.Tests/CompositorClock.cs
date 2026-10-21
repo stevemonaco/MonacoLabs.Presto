@@ -51,7 +51,7 @@ internal static class CompositorClock
         return (Stopwatch)Property(server.GetType(), "Clock").GetValue(server)!;
     }
 
-    private static object Server()
+    internal static object Server()
     {
         var compositor = (AvaloniaCompositor)Property(typeof(AvaloniaHeadlessPlatform), "Compositor").GetValue(null)!;
         return Property(typeof(AvaloniaCompositor), "Server").GetValue(compositor)!;

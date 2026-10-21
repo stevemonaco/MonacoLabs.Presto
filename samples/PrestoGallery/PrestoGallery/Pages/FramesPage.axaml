@@ -6,49 +6,47 @@
                        xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
                        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="900"
                        x:Class="PrestoGallery.Pages.FramesPage">
-    <ScrollViewer>
-        <StackPanel Spacing="12">
-            <Grid ColumnDefinitions="*,260,*" ColumnSpacing="16">
-                <Border Height="280" CornerRadius="10" BorderThickness="1"
-                        Background="{x:Static showcase:Palette.Background}" BorderBrush="{x:Static showcase:Palette.Border}">
-                    <presto:SpriteSheet x:Name="Hero" Source="/Assets/Sprites/adventurer.png" Columns="9" Rows="3" FrameCount="24" Height="220" />
-                </Border>
+    <StackPanel Spacing="12">
+        <showcase:SplitPanel Widths="*,260,*" Spacing="16" Breakpoint="640">
+            <Border Height="280" CornerRadius="10" BorderThickness="1"
+                    Background="{x:Static showcase:Palette.Background}" BorderBrush="{x:Static showcase:Palette.Border}">
+                <presto:SpriteSheet x:Name="Hero" Source="/Assets/Sprites/adventurer.png" Columns="9" Rows="3" FrameCount="24" Height="220" />
+            </Border>
 
-                <StackPanel Grid.Column="1" Spacing="2">
-                    <TextBlock Classes="caption" Text="{Binding #FpsSlider.Value, StringFormat='{}{0:0} fps'}" />
-                    <Slider x:Name="FpsSlider" Minimum="1" Maximum="30" TickFrequency="1" IsSnapToTickEnabled="True" Value="8" ValueChanged="PlaybackChanged" />
-                    <TextBlock Classes="caption" Text="{Binding #Hero.CurrentFrame, StringFormat='Frame {0} / 23'}" />
-                    <Slider x:Name="Scrub" Minimum="0" Maximum="24" Value="{Binding #Hero.Frame, Mode=TwoWay}" />
-                    <ToggleSwitch x:Name="ReverseToggle" OnContent="Reverse" OffContent="Forward" IsCheckedChanged="PlaybackChanged" />
-                    <TextBlock Classes="caption" Text="{Binding #Hero.HueRotate, StringFormat='HueRotate {0:0}°'}" />
-                    <Slider x:Name="HueSlider" Minimum="0" Maximum="360" Value="{Binding #Hero.HueRotate, Mode=TwoWay}" />
+            <StackPanel Spacing="2">
+                <TextBlock Classes="caption" Text="{Binding #FpsSlider.Value, StringFormat='{}{0:0} fps'}" />
+                <Slider x:Name="FpsSlider" Minimum="1" Maximum="30" TickFrequency="1" IsSnapToTickEnabled="True" Value="8" ValueChanged="PlaybackChanged" />
+                <TextBlock Classes="caption" Text="{Binding #Hero.CurrentFrame, StringFormat='Frame {0} / 23'}" />
+                <Slider x:Name="Scrub" Minimum="0" Maximum="24" Value="{Binding #Hero.Frame, Mode=TwoWay}" />
+                <ToggleSwitch x:Name="ReverseToggle" OnContent="Reverse" OffContent="Forward" IsCheckedChanged="PlaybackChanged" />
+                <TextBlock Classes="caption" Text="{Binding #Hero.HueRotate, StringFormat='HueRotate {0:0}°'}" />
+                <Slider x:Name="HueSlider" Minimum="0" Maximum="360" Value="{Binding #Hero.HueRotate, Mode=TwoWay}" />
+            </StackPanel>
+
+            <Border Height="280" CornerRadius="10" BorderThickness="1"
+                    Background="{x:Static showcase:Palette.Background}" BorderBrush="{x:Static showcase:Palette.Border}">
+                <presto:SpriteSheet Source="/Assets/Sprites/zombie.png" Columns="9" Rows="3" FrameCount="24" Height="220"
+                                    presto:Animate.OnAttached="{presto:PlayFrames Fps=12}" />
+            </Border>
+        </showcase:SplitPanel>
+
+        <Grid ColumnDefinitions="*,260" ColumnSpacing="16">
+            <Border Height="280" CornerRadius="10" BorderThickness="1"
+                    Background="{x:Static showcase:Palette.Background}" BorderBrush="{x:Static showcase:Palette.Border}">
+                <StackPanel VerticalAlignment="Center" Spacing="8">
+                    <presto:ImageSequence x:Name="Sequence" Height="220" />
+                    <TextBlock x:Name="Caption" HorizontalAlignment="Center" FontSize="18" FontWeight="SemiBold" />
                 </StackPanel>
+            </Border>
 
-                <Border Grid.Column="2" Height="280" CornerRadius="10" BorderThickness="1"
-                        Background="{x:Static showcase:Palette.Background}" BorderBrush="{x:Static showcase:Palette.Border}">
-                    <presto:SpriteSheet Source="/Assets/Sprites/zombie.png" Columns="9" Rows="3" FrameCount="24" Height="220"
-                                        presto:Animate.OnAttached="{presto:PlayFrames Fps=12}" />
-                </Border>
-            </Grid>
-
-            <Grid ColumnDefinitions="*,260" ColumnSpacing="16">
-                <Border Height="280" CornerRadius="10" BorderThickness="1"
-                        Background="{x:Static showcase:Palette.Background}" BorderBrush="{x:Static showcase:Palette.Border}">
-                    <StackPanel VerticalAlignment="Center" Spacing="8">
-                        <presto:ImageSequence x:Name="Sequence" Height="220" />
-                        <TextBlock x:Name="Caption" HorizontalAlignment="Center" FontSize="18" FontWeight="SemiBold" />
-                    </StackPanel>
-                </Border>
-
-                <StackPanel Grid.Column="1" Spacing="8">
-                    <TextBlock Classes="caption" Text="{Binding #Sequence.CurrentFrame, StringFormat='female_{0:000}.png'}" />
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Classes="accent" Content="Play" Click="PlayClicked" />
-                        <Button Content="Pause" Click="PauseClicked" />
-                        <Button Content="Restart" Click="RestartClicked" />
-                    </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="8">
+                <TextBlock Classes="caption" Text="{Binding #Sequence.CurrentFrame, StringFormat='female_{0:000}.png'}" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Classes="accent" Content="Play" Click="PlayClicked" />
+                    <Button Content="Pause" Click="PauseClicked" />
+                    <Button Content="Restart" Click="RestartClicked" />
                 </StackPanel>
-            </Grid>
-        </StackPanel>
-    </ScrollViewer>
+            </StackPanel>
+        </Grid>
+    </StackPanel>
 </showcase:ShowcasePage>

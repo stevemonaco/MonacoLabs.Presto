@@ -10,9 +10,11 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Platform;
+using Avalonia.VisualTree;
 using MonacoLabs.Presto;
 using MonacoLabs.Presto.Compositor;
 using MonacoLabs.Presto.Tests;
+using PrestoGallery.Showcase;
 
 namespace PrestoGallery.Tests;
 
@@ -31,10 +33,20 @@ internal static class SceneHarness
     public static Window Show(Control content, double width, double height, int frames = 1)
     {
         TestFrames.Install();
-        var window = new Window { Content = content, Width = width, Height = height };
+        var window = new Window { Content = Hosted(content, height), Width = width, Height = height };
         window.Show();
         TestFrames.Tick(frames);
         return window;
+    }
+
+    // A gallery page sits as MainView hosts it: in a vertical scroller and at least the viewport tall, unless it fills the viewport.
+    private static Control Hosted(Control content, double height)
+    {
+        if (content is not UserControl || content.GetType().Namespace is not ("PrestoGallery.Pages" or "PrestoGallery.Builder" or "PrestoGallery.Showcase.Pages"))
+            return content;
+        if (content is ShowcasePage { FillsViewport: true }) return content;
+        content.MinHeight = height;
+        return new ScrollViewer { Content = content, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
     }
 
     /// <inheritdoc cref="Show(Control, double, double, int)"/>
@@ -97,6 +109,14 @@ internal static class SceneHarness
     public static CompositorCanvas[] ParticleOverlays(Visual visual) =>
         OverlayLayer.GetOverlayLayer(visual)!.Children.OfType<CompositorCanvas>().ToArray();
 
+    /// <summary>The overlay hosts Presence draws exit ghosts into over <paramref name="visual"/>'s window.</summary>
+    public static IEnumerable<Canvas> Ghosts(Visual visual) => OverlayLayer.GetOverlayLayer(visual)!.Children.OfType<Canvas>();
+
+    /// <summary>Each exit ghost's delay, keyed by the item it stands in for.</summary>
+    public static Dictionary<T, double> GhostDelays<T>(Visual page) where T : notnull =>
+        Ghosts(page).SelectMany(host => host.GetVisualDescendants().OfType<Image>())
+            .Where(ghost => ghost.DataContext is T).ToDictionary(ghost => (T)ghost.DataContext!, ghost => Assert.Single(Presto.GetAnimations(ghost)).Delay);
+
     /// <summary>The number a readout is showing.</summary>
     public static double Number(TextBlock text) => double.Parse(text.Text!, CultureInfo.InvariantCulture);
 
@@ -114,6 +134,7 @@ internal static class SceneHarness
     public static (byte[] Pixels, int Stride) Capture(Visual visual)
     {
         var window = TopLevel.GetTopLevel(visual)!;
+        if (HeadlessDrawing.Resume()) AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         using var frame = window.GetLastRenderedFrame() ?? throw new InvalidOperationException("The window has not rendered yet.");
         using var locked = frame.Lock();
         var pixels = new byte[locked.RowBytes * locked.Size.Height];

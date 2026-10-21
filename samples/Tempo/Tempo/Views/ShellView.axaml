@@ -27,9 +27,8 @@
             </Panel>
         </Panel>
         <!-- Above the panels, so the wordmark's flight in from the intro is not drawn under them. -->
-        <Border Classes="titlebar" ZIndex="1">
-            <!-- The last column keeps clear of the system caption buttons. -->
-            <Grid ColumnDefinitions="*,Auto,*,Auto,138" Margin="16,0,0,0">
+        <Border x:Name="TitleBar" Classes="titlebar" ZIndex="1">
+            <Grid ColumnDefinitions="*,Auto,*,Auto,Auto" Margin="16,0,0,0">
                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <Border Classes="accent-bg handoff" Width="10" Height="10" CornerRadius="5" />
                     <TextBlock Classes="wordmark" Text="tempo"
@@ -52,6 +51,7 @@
                     </presto:Motion.States>
                     <PathIcon Data="{StaticResource SettingsIcon}" />
                 </Button>
+                <Border x:Name="CaptionClearance" Grid.Column="4" Width="138" />
             </Grid>
         </Border>
 
@@ -77,7 +77,7 @@
         </DockPanel>
 
         <!-- Settings is a button beside the pages, not a fourth item: it opens the sheet over the page, so the pill stays put. -->
-        <Border Grid.Row="2" Classes="bottom-bar handoff">
+        <Border x:Name="BottomBar" Grid.Row="2" Classes="bottom-bar handoff">
             <Grid ColumnDefinitions="3*,*">
                 <ListBox x:Name="BottomNav" Classes="bottom-nav" SelectedItem="{Binding CurrentView}">
                     <x:Static Member="vm:AppView.Tasks" />
@@ -124,7 +124,7 @@
         <!-- Compact turns the detail and the settings popover into bottom sheets, over the bar too. -->
         <presto:Sheet x:Name="DetailSheet" Grid.Row="1" TimeConstant="150" IsOpen="{Binding IsDetailOpen}">
             <Border Classes="sheet">
-                <DockPanel>
+                <DockPanel x:Name="DetailBody">
                     <Border Classes="grab" DockPanel.Dock="Top" />
                     <v:TaskDetail x:Name="Detail" DataContext="{Binding SelectedTask}" />
                 </DockPanel>
@@ -136,7 +136,7 @@
                         presto:Popover.Open="{x:Static m:TempoMotion.FlyoutOpen}" presto:Popover.Close="{x:Static m:TempoMotion.FlyoutClose}" />
             </presto:Sheet.Flyout>
             <Border Classes="sheet">
-                <DockPanel>
+                <DockPanel x:Name="SettingsBody">
                     <Border Classes="grab" DockPanel.Dock="Top" />
                     <v:SettingsFlyout x:Name="Settings" />
                 </DockPanel>

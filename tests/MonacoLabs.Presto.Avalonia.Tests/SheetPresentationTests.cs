@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto.Controls;
+using MonacoLabs.Presto.Prebuilt;
 
 namespace MonacoLabs.Presto.Tests;
 
@@ -86,6 +87,24 @@ public sealed class SheetPresentationTests : CompositorTestBase
         Assert.False(stage.Sheet.IsOpen);
         Assert.Same(Panel(stage.Sheet), stage.Content.Parent);
         AssertSynced(stage.Sheet);
+    }
+
+    [AvaloniaFact]
+    public void ClosingTheWindowOverAnOpenFlyoutWithAnAnchoredPopoverCloseDoesNotThrow()
+    {
+        var flyout = new Flyout();
+        Popover.SetClose(flyout, Popovers.PopoverOut());
+        var stage = Stage(flyout);
+        stage.Sheet.IsOpen = true;
+        Tick();
+        var host = stage.Content.FindAncestorOfType<OverlayPopupHost>()!;
+
+        // Windows destroys a native popup before its owner, so the owner's close finds the presenter detached.
+        ((Panel)host.GetVisualParent()!).Children.Remove(host);
+        stage.Window.Close();
+        Tick();
+
+        Assert.False(flyout.IsOpen);
     }
 
     [AvaloniaFact]

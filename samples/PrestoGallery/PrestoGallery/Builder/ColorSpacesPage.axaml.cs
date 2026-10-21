@@ -41,11 +41,16 @@ public partial class ColorSpacesPage : ShowcasePage
             var label = new TextBlock { Classes = { "mono" }, Text = space?.ToString() ?? "Default (≈ LinearSrgb)" };
             var pill = new Border { Classes = { "pill" }, Child = new TextBlock() };
             var path = new Border { Classes = { "path" } };
-            Grid.SetColumn(pill, 1);
-            Grid.SetColumn(path, 2);
+            Grid.SetColumn(path, 1);
             _pills.Add(pill);
             _paths.Add(path);
-            PillRows.Children.Add(new Grid { ColumnDefinitions = new("190,150,*"), Children = { label, pill, path } });
+            PillRows.Children.Add(new SplitPanel
+            {
+                Widths = "190,*",
+                Spacing = 0,
+                Breakpoint = 480,
+                Children = { label, new Grid { ColumnDefinitions = new("150,*"), Children = { pill, path } } },
+            });
         }
     }
 

@@ -7,6 +7,8 @@ public sealed class TempoStoreTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "TempoStoreTests", Guid.NewGuid().ToString("N"));
 
+    private string FilePath => Path.Combine(_root, "tempo.json");
+
     public void Dispose()
     {
         if (Directory.Exists(_root))
@@ -37,7 +39,7 @@ public sealed class TempoStoreTests : IDisposable
             (loaded.Settings.WorkMinutes, loaded.Settings.Motion, loaded.Settings.WindowWidth, loaded.Settings.WindowX, loaded.Settings.IsMaximized));
         Assert.Equal([session], loaded.Sessions);
         Assert.True(store.Exists);
-        Assert.False(File.Exists(store.FilePath + ".tmp"));
+        Assert.False(File.Exists(FilePath + ".tmp"));
     }
 
     [Fact]
@@ -58,7 +60,7 @@ public sealed class TempoStoreTests : IDisposable
     {
         var store = new TempoStore(_root);
         Directory.CreateDirectory(_root);
-        await File.WriteAllTextAsync(store.FilePath, """{ "Tasks": [ { "Title": "Kept" } ] }""", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(FilePath, """{ "Tasks": [ { "Title": "Kept" } ] }""", TestContext.Current.CancellationToken);
 
         var loaded = await store.LoadAsync();
 
@@ -74,13 +76,13 @@ public sealed class TempoStoreTests : IDisposable
         var store = new TempoStore(_root);
         Directory.CreateDirectory(_root);
         byte[] garbage = [0x7B, 0x22, 0x54, 0x61, 0x73, 0x6B, 0xFF, 0x00];
-        await File.WriteAllBytesAsync(store.FilePath, garbage, TestContext.Current.CancellationToken);
+        await File.WriteAllBytesAsync(FilePath, garbage, TestContext.Current.CancellationToken);
 
         var loaded = await store.LoadAsync();
 
         Assert.Empty(loaded.Tasks);
         Assert.Equal(25, loaded.Settings.WorkMinutes);
-        Assert.Equal(garbage, await File.ReadAllBytesAsync(store.FilePath + ".bak", TestContext.Current.CancellationToken));
-        Assert.False(File.Exists(store.FilePath));
+        Assert.Equal(garbage, await File.ReadAllBytesAsync(FilePath + ".bak", TestContext.Current.CancellationToken));
+        Assert.False(File.Exists(FilePath));
     }
 }

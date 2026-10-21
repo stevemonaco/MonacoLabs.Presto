@@ -111,7 +111,7 @@ depends:
 ### Cue
 
 - **BRIDGE-ATTACH-039** — While a visual with `Cue` set is attached, `Animate` shall subscribe to the cue. It shall unsubscribe on detach, when `Cue` changes and when `Cue` is set to `null`.
-  - Tests: `AnimateAttachedTests.DetachingUnsubscribesFromTheCueAndAttachingSubscribesAgain`, `AnimateAttachedTests.ChangingOrClearingTheCueUnsubscribesFromTheOldOne`
+  - Tests: `AnimateAttachedTests.DetachingUnsubscribesFromTheCueAndAttachingSubscribesAgain`, `AnimateAttachedTests.ChangingOrClearingTheCueUnsubscribesFromTheOldOne`, `AnimateAttachedTests.ACollectedViewIsNotKeptAliveByItsCue`
 - **BRIDGE-ATTACH-040** — `Cue` shall accept a `Cue`, a `Cue<T>` or an `IObservable<object?>`; any other non-null value shall throw `ArgumentException`.
   - Tests: `AnimateAttachedTests.AnObservableSourceDrivesOnCueAndDoOnCue`, `AnimateAttachedTests.ACueThatIsNeitherACueNorAnObservableThrows`
 - **BRIDGE-ATTACH-041** — On each raise, `Animate` shall play `OnCue` under the rules of `OnChanged` (-017, -018, -020, -022, -023, -038) and invoke `DoOnCue` with the raised value and `first` false.

@@ -141,7 +141,7 @@ depends:
 - **BRIDGE-PRESENCE-055** — When an exit under a `Wait` host completes inside its creation (as under `ReduceAll`), the content that replaces it shall not be held: it shows at full opacity and no ghost is left.
   - Tests: `PresenceModeTests.UnderReduceAllTheWaitEndsWithTheInstantExit`
 - **BRIDGE-PRESENCE-058** — When an element under a host in `Wait` with no exit in flight is shown, its entrance shall play from the end of the dispatcher turn (the exit batch job), held when an exit under the host started by then.
-  - Tests: `PresenceModeTests.AnEmptyLineShownByCountFadesInOnlyOnceTheLastRowsGhostEnds`, `PresenceModeTests.AShowUnderAWaitHostWithNothingExitingPlaysInTheSameTurnBeforeAFrame`, `ReferencePagesTests.ClearRowsStaggersTheGhostsTopFirstAndTheEmptyLineFadesInAfterTheLast`
+  - Tests: `PresenceModeTests.AnEmptyLineShownByCountFadesInOnlyOnceTheLastRowsGhostEnds`, `PresenceModeTests.AShowUnderAWaitHostWithNothingExitingPlaysInTheSameTurnBeforeAFrame`, `ReferencePagesTests.ClearRowsHoldsTheEmptyLineUntilTheLastGhostEndsUnderWaitAndFadesItInWhileTheyLeaveUnderSync`
 
 ### IsVisible show and hide
 

@@ -189,11 +189,11 @@ public sealed class ReferencePagesTests
         SceneHarness.Click(window, Button(page, "Next"));
         var incoming = (Control)wizard.Content!;
         TestFrames.Tick(4);
-        Assert.Single(Ghosts(wizard));
+        Assert.Single(SceneHarness.Ghosts(wizard));
         Assert.Equal(0, incoming.Opacity);
 
-        for (var frame = 0; frame < 120 && Ghosts(wizard).Any(); frame++) TestFrames.Tick();
-        Assert.Empty(Ghosts(wizard));
+        for (var frame = 0; frame < 120 && SceneHarness.Ghosts(wizard).Any(); frame++) TestFrames.Tick();
+        Assert.Empty(SceneHarness.Ghosts(wizard));
         TestFrames.Tick(60);
 
         Assert.Equal(1, incoming.Opacity, 6);
@@ -217,40 +217,96 @@ public sealed class ReferencePagesTests
 
         var third = (Control)wizard.Content!;
         Assert.Contains("3 · Done", third.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
-        Assert.Empty(Ghosts(wizard));
+        Assert.Empty(SceneHarness.Ghosts(wizard));
         Assert.Equal(1, third.Opacity, 6);
         Assert.False(held.IsAnimating(Visual.OpacityProperty));
         SceneHarness.Close(window);
     }
 
     [AvaloniaTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void ClearRowsStaggersTheGhostsTopFirstAndTheEmptyLineFadesInAfterTheLast(bool reduced)
+    [InlineData(PresenceMode.Wait, false)]
+    [InlineData(PresenceMode.Wait, true)]
+    [InlineData(PresenceMode.Sync, false)]
+    [InlineData(PresenceMode.Sync, true)]
+    public void ClearRowsHoldsTheEmptyLineUntilTheLastGhostEndsUnderWaitAndFadesItInWhileTheyLeaveUnderSync(PresenceMode mode, bool reduced)
     {
         using var motion = reduced ? ReducedMotion.On() : null;
         var page = new LifecyclePage();
         var window = SceneHarness.Show(page, 900, 900);
         TestFrames.Tick(60);
+        page.GetControl<ComboBox>("HostModePicker").SelectedIndex = (int)mode;
+        Assert.Contains($"PresenceMode.{mode}", page.GetControl<CodePanel>("RowCode").Code);
         var empty = page.GetLogicalDescendants().OfType<TextBlock>().First(text => text.Text == "No rows" && text.IsAttachedToVisualTree());
 
         SceneHarness.Click(window, Button(page, "Clear rows"));
-        Dispatcher.UIThread.RunJobs();
-
-        var ghosts = Ghosts(page).SelectMany(host => host.GetVisualDescendants().OfType<Image>())
-            .Where(ghost => ghost.DataContext is string).ToDictionary(ghost => (string)ghost.DataContext!, ghost => Assert.Single(Presto.GetAnimations(ghost)).Delay);
-        string[] rows = ["Reply to Grace", "Review the pull request", "Book the venue", "Pay the invoice"];
-        Assert.Equal(rows.Select((_, i) => 40.0 * i), rows.Select(row => ghosts[row]));
-        TestFrames.Tick(4);
         Assert.True(empty.IsVisible);
-        Assert.Equal(0, empty.Opacity);
+        var opacityWhileLeaving = 0.0;
+        for (var frame = 0; frame < 120 && SceneHarness.Ghosts(page).Any(); frame++)
+        {
+            if (mode == PresenceMode.Wait) Assert.Equal(0, empty.Opacity);
+            opacityWhileLeaving = Math.Max(opacityWhileLeaving, empty.Opacity);
+            TestFrames.Tick();
+        }
 
-        for (var frame = 0; frame < 120 && Ghosts(page).Any(); frame++) TestFrames.Tick();
-        Assert.Empty(Ghosts(page));
+        Assert.Empty(SceneHarness.Ghosts(page));
+        if (mode == PresenceMode.Sync) Assert.True(opacityWhileLeaving > 0, "the empty line waited for the ghosts under Sync");
         TestFrames.Tick(60);
         Assert.Equal(1, empty.Opacity, 6);
         SceneHarness.Close(window);
     }
+
+    [AvaloniaTheory]
+    [InlineData("First", new[] { 0.0, 40, 80, 120 }, false)]
+    [InlineData("Last", new[] { 120.0, 80, 40, 0 }, false)]
+    [InlineData("Center", new[] { 60.0, 20, 20, 60 }, false)]
+    [InlineData("First", new[] { 0.0, 40, 80, 120 }, true)]
+    [InlineData("Last", new[] { 120.0, 80, 40, 0 }, true)]
+    [InlineData("Center", new[] { 60.0, 20, 20, 60 }, true)]
+    public void ClearRowsStaggersTheGhostsFromThePickedEndAndLogsEachRowInThatOrder(string order, double[] delays, bool reduced)
+    {
+        using var motion = reduced ? ReducedMotion.On() : null;
+        var page = new LifecyclePage();
+        var window = SceneHarness.Show(page, 900, 900);
+        TestFrames.Tick(60);
+        page.GetControl<ComboBox>("ExitOrderPicker").SelectedItem = order;
+        Assert.Contains($"From = StaggerFrom.{order}", page.GetControl<CodePanel>("RowCode").Code);
+
+        SceneHarness.Click(window, Button(page, "Clear rows"));
+        Dispatcher.UIThread.RunJobs();
+        var ghosts = SceneHarness.GhostDelays<string>(page);
+        string[] rows = ["Reply to Grace", "Review the pull request", "Book the venue", "Pay the invoice"];
+        Assert.Equal(delays, rows.Select(row => ghosts[row]));
+
+        for (var frame = 0; frame < 120 && SceneHarness.Ghosts(page).Any(); frame++) TestFrames.Tick();
+        var logged = LoggedExits(page);
+        Assert.Equal(rows.Order(), logged.Order());
+        Assert.Equal(logged.OrderBy(row => ghosts[row]), logged);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RemoveThreeExitsEveryOtherShownRowAsOneBatchLoggedInPositionOrder(bool reduced)
+    {
+        using var motion = reduced ? ReducedMotion.On() : null;
+        var page = new LifecyclePage();
+        var window = SceneHarness.Show(page, 900, 900);
+        SceneHarness.Click(window, Button(page, "Navigate"));
+        SceneHarness.Click(window, Button(page, "Navigate"));
+        TestFrames.Tick(60);
+
+        SceneHarness.Click(window, Button(page, "Remove three"));
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal([0.0, 40, 80], new[] { 1, 3, 5 }.Select(row => SceneHarness.GhostDelays<string>(page)[$"Archived task #{row}"]));
+
+        for (var frame = 0; frame < 120 && SceneHarness.Ghosts(page).Any(); frame++) TestFrames.Tick();
+        Assert.Equal(["Archived task #1", "Archived task #3", "Archived task #5"], LoggedExits(page));
+        SceneHarness.Close(window);
+    }
+
+    private static List<string> LoggedExits(Control page) =>
+        [.. Log(page.GetControl<ItemsControl>("Moments")).Where(line => line.StartsWith("Exit ")).Select(line => line[6..^1]).Reverse()];
 
     [AvaloniaTheory]
     [InlineData(false)]
@@ -265,7 +321,7 @@ public sealed class ReferencePagesTests
         SceneHarness.Click(window, ChoreRow(page.GetControl<ItemsControl>("OpenList"), "Send the report"));
         TestFrames.Tick(2);
 
-        Assert.Empty(Ghosts(page));
+        Assert.Empty(SceneHarness.Ghosts(page));
         var arrived = ChoreRow(page.GetControl<ItemsControl>("DoneList"), "Send the report");
         Assert.Equal(1, arrived.Opacity);
         SceneHarness.Close(window);
@@ -277,8 +333,6 @@ public sealed class ReferencePagesTests
     [AvaloniaFact]
     public void TheLifecycleWizardPrintsItsMarkup() =>
         Assert.Equal($"{Snippets.LifecycleWizard}\n\n{Snippets.LifecycleStep}", new LifecyclePage().GetControl<CodePanel>("WizardCode").Code);
-
-    private static IEnumerable<Canvas> Ghosts(Visual host) => OverlayLayer.GetOverlayLayer(host)!.Children.OfType<Canvas>();
 
     [AvaloniaFact]
     public void AHoveredStatesCardLiftsAndReturns()
@@ -393,12 +447,79 @@ public sealed class ReferencePagesTests
     [AvaloniaFact]
     public void TheStatesPagePrintsEverySnippet()
     {
-        var code = new StatesPage().GetControl<CodeTabs>("Code");
+        var page = new StatesPage();
+        var code = page.GetControl<CodeTabs>("Code");
         string[] snippets = [Snippets.StatesButton, Snippets.StatesTextBox, Snippets.StatesCheckBox, Snippets.StatesArrow, Snippets.StatesCard,
             Snippets.StatesChip, Snippets.StatesUpload, Snippets.StatesMenu, Snippets.StatesMenuItem];
         Assert.All(snippets, snippet => Assert.Contains(snippet, code.Xaml));
         Assert.Contains(Snippets.StatesBuilders, code.CSharp);
+        Assert.Equal(Snippets.StatesComposed, page.GetControl<CodePanel>("ComposedCode").Code);
+        Assert.Equal(Snippets.StatesLayering, page.GetControl<CodePanel>("LayeringCode").Code);
     }
+
+    [AvaloniaFact]
+    public void TheComposedChipReadsOutTheTokensItHolds()
+    {
+        var page = new StatesPage();
+        var window = SceneHarness.Show(page, 1100, 1400);
+        var readout = page.GetControl<TextBlock>("TokenReadout");
+
+        page.GetControl<ComboBox>("ModePicker").SelectedIndex = 1;
+        page.GetControl<ToggleButton>("SelectedToggle").IsChecked = true;
+        page.GetControl<ToggleButton>("BusyToggle").IsChecked = true;
+        TestFrames.Tick(30);
+        Assert.Equal("Review IsSelected IsBusy", readout.Text);
+        Assert.Equal(Palette.Violet.Color, Background(page.GetControl<Border>("ComposedChip")));
+
+        page.GetControl<ToggleButton>("SelectedToggle").IsChecked = false;
+        page.GetControl<ToggleButton>("BusyToggle").IsChecked = false;
+        TestFrames.Tick(70);
+        Assert.Equal("Review", readout.Text);
+        Assert.Empty(Presto.GetAnimations(page.GetControl<Border>("ComposedChip")));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void ABusyLocalStateWinsTheBackgroundOverTheStylesModeColor()
+    {
+        var page = new StatesPage();
+        var window = SceneHarness.Show(page, 1100, 1400);
+        var local = page.GetControl<Border>("LocalLayerCard");
+
+        page.Mode = "Review";
+        page.IsBusy = true;
+        TestFrames.Tick(30);
+
+        Assert.Equal(Palette.Amber.Color, Background(local));
+        Assert.Equal(Palette.Violet.Color, Background(page.GetControl<Border>("StyleLayerCard")));
+        Assert.NotEmpty(Presto.GetAnimations(local));
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void UnderReducedMotionTheBusyPulseAndBreatheSettleWhileTheColorsChange()
+    {
+        using var reduced = ReducedMotion.On();
+        var page = new StatesPage();
+        var window = SceneHarness.Show(page, 1100, 1400);
+        var chip = page.GetControl<Border>("ComposedChip");
+        var local = page.GetControl<Border>("LocalLayerCard");
+
+        page.Mode = "Live";
+        page.IsBusy = true;
+        TestFrames.Tick(70);
+
+        Assert.Empty(Presto.GetAnimations(chip));
+        Assert.Empty(Presto.GetAnimations(local));
+        Assert.Equal(1, chip.Opacity, 6);
+        Assert.Equal(1, (double)PrestoAvalonia.Get(local, "Scale")!, 6);
+        Assert.Equal(Palette.Aqua.Color, Background(chip));
+        Assert.Equal(Palette.Amber.Color, Background(local));
+        Assert.Equal(Palette.Aqua.Color, Background(page.GetControl<Border>("StyleLayerCard")));
+        SceneHarness.Close(window);
+    }
+
+    private static Color Background(Border border) => ((ISolidColorBrush)border.Background!).Color;
 
     [AvaloniaFact]
     public async Task EveryEffectsStageRunsAndClosingLeavesNoBridgeOwnedEffectClipOrMask()
@@ -743,13 +864,14 @@ public sealed class ReferencePagesTests
     {
         var page = new TimerPage();
         var window = SceneHarness.Show(page, 900, 600, frames: 10);
+        var host = window.Content;
         var currentTime = page.GetControl<TextBlock>("CurrentTimeText");
         window.Content = null;
         var stopped = currentTime.Text;
         TestFrames.Tick(10);
         Assert.Equal(stopped, currentTime.Text);
 
-        window.Content = page;
+        window.Content = host;
         TestFrames.Tick(10);
         Assert.InRange(double.Parse(currentTime.Text!, CultureInfo.InvariantCulture), 1, 200);
 

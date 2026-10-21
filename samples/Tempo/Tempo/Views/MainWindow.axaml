@@ -1,6 +1,5 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
         xmlns:v="using:Tempo.Views"
         xmlns:vm="using:Tempo.ViewModels"
         x:Class="Tempo.Views.MainWindow"
@@ -11,13 +10,6 @@
         MinWidth="320"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="44"
-        TransparencyLevelHint="Mica, AcrylicBlur, None"
-        presto:Motion.Preference="{Binding Motion}">
-    <!-- On the window rather than the shell, so they work while nothing has focus. Space is handled in code-behind. -->
-    <Window.KeyBindings>
-        <KeyBinding Gesture="N" Command="{Binding FocusAddBoxCommand}" />
-        <KeyBinding Gesture="Delete" Command="{Binding DeleteSelectedCommand}" />
-        <KeyBinding Gesture="Ctrl+OemComma" Command="{Binding OpenSettingsCommand}" />
-    </Window.KeyBindings>
-    <v:ShellView />
+        TransparencyLevelHint="Mica, AcrylicBlur, None">
+    <v:MainView x:Name="View" x:FieldModifier="public" Classes="windowed" />
 </Window>

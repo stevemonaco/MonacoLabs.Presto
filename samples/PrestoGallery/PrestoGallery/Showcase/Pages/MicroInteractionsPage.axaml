@@ -76,10 +76,23 @@
             <Setter Property="presto:Ripple.Color" Value="#47FFFFFF" />
         </Style>
         <!-- /snippet -->
+        <Style Selector="UniformGrid#Tiles">
+            <Setter Property="Columns" Value="3" />
+        </Style>
+        <ContainerQuery Name="page" Query="max-width:719">
+            <Style Selector="UniformGrid#Tiles">
+                <Setter Property="Columns" Value="2" />
+            </Style>
+        </ContainerQuery>
+        <ContainerQuery Name="page" Query="max-width:479">
+            <Style Selector="UniformGrid#Tiles">
+                <Setter Property="Columns" Value="1" />
+            </Style>
+        </ContainerQuery>
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer>
-        <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="16">
+    <StackPanel Container.Name="page" Container.Sizing="Width" Spacing="16">
+        <UniformGrid x:Name="Tiles" ColumnSpacing="12" RowSpacing="16">
             <StackPanel Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="SUBMIT" />
                 <Border Classes="stage">
@@ -101,9 +114,11 @@
                         <!-- /snippet -->
                     </StackPanel>
                 </Border>
+                <TextBlock Classes="caption" TextWrapping="Wrap"
+                           Text="Place order's width animates in whole device-pixel steps measured from where it started, so both edges move together and the label does not shake." />
             </StackPanel>
 
-            <StackPanel Grid.Column="1" Spacing="8">
+            <StackPanel Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="LIKE" />
                 <Border Classes="stage">
                     <!-- snippet: MicroInteractionsLike -->
@@ -122,27 +137,29 @@
                 </Border>
             </StackPanel>
 
-            <StackPanel Grid.Column="2" Spacing="8">
+            <StackPanel Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="TAB INDICATOR" />
                 <Border Classes="stage">
                     <StackPanel VerticalAlignment="Center">
-                        <TabStrip x:Name="Tabs" SelectedIndex="0">
-                            <TabStrip.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </TabStrip.ItemsPanel>
-                            <TabStripItem Content="Overview" />
-                            <TabStripItem Content="Activity" />
-                            <TabStripItem Content="Settings" />
-                            <TabStripItem Content="Billing" />
-                        </TabStrip>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                            <TabStrip x:Name="Tabs" SelectedIndex="0">
+                                <TabStrip.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </TabStrip.ItemsPanel>
+                                <TabStripItem Content="Overview" />
+                                <TabStripItem Content="Activity" />
+                                <TabStripItem Content="Settings" />
+                                <TabStripItem Content="Billing" />
+                            </TabStrip>
+                        </ScrollViewer>
                         <Border Height="1" Background="{x:Static showcase:Palette.Border}" />
                     </StackPanel>
                 </Border>
             </StackPanel>
 
-            <StackPanel Grid.Row="1" Spacing="8">
+            <StackPanel Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="ACCORDION" />
                 <Border Classes="stage">
                     <StackPanel x:Name="Accordion" Spacing="6">
@@ -159,7 +176,7 @@
                 </Border>
             </StackPanel>
 
-            <StackPanel Grid.Row="1" Grid.Column="1" Spacing="8">
+            <StackPanel Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="TOASTS" />
                 <Border Classes="stage">
                     <DockPanel>
@@ -188,7 +205,7 @@
                 </Border>
             </StackPanel>
 
-            <StackPanel Grid.Row="1" Grid.Column="2" Spacing="8">
+            <StackPanel Spacing="8">
                 <TextBlock Classes="eyebrow showcase" Text="VALIDATION" />
                 <Border Classes="stage">
                     <StackPanel Spacing="10" VerticalAlignment="Center">
@@ -198,23 +215,23 @@
                     </StackPanel>
                 </Border>
             </StackPanel>
+        </UniformGrid>
 
-            <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Spacing="8">
-                <TextBlock Classes="eyebrow showcase" Text="MAGNETIC" />
-                <Border Classes="stage" Height="160">
-                    <!-- snippet: MicroInteractionsMagnetic -->
-                    <StackPanel Orientation="Horizontal" Spacing="72" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <Button x:Name="Magnet" Classes="specimen" Content="Default" presto:Magnetic.Enabled="True" />
-                        <Button Classes="specimen" Content="Strong pull" presto:Magnetic.Enabled="True"
-                                presto:Magnetic.Strength="0.6" presto:Magnetic.Radius="80" />
-                        <Button Classes="specimen" Content="Subtle" presto:Magnetic.Enabled="True"
-                                presto:Magnetic.Strength="0.15" presto:Magnetic.Radius="32" />
-                    </StackPanel>
-                    <!-- /snippet -->
-                </Border>
-            </StackPanel>
+        <StackPanel Spacing="8">
+            <TextBlock Classes="eyebrow showcase" Text="MAGNETIC" />
+            <Border Classes="stage" Height="160">
+                <!-- snippet: MicroInteractionsMagnetic -->
+                <WrapPanel ItemSpacing="72" LineSpacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Button x:Name="Magnet" Classes="specimen" Content="Default" presto:Magnetic.Enabled="True" />
+                    <Button Classes="specimen" Content="Strong pull" presto:Magnetic.Enabled="True"
+                            presto:Magnetic.Strength="0.6" presto:Magnetic.Radius="80" />
+                    <Button Classes="specimen" Content="Subtle" presto:Magnetic.Enabled="True"
+                            presto:Magnetic.Strength="0.15" presto:Magnetic.Radius="32" />
+                </WrapPanel>
+                <!-- /snippet -->
+            </Border>
+        </StackPanel>
 
-            <showcase:CodeTabs x:Name="Code" Grid.Row="3" Grid.ColumnSpan="3" Header="How it's built" IsExpanded="False" SelectedLanguage="Xaml" />
-        </Grid>
-    </ScrollViewer>
+        <showcase:CodeTabs x:Name="Code" Header="How it's built" IsExpanded="False" SelectedLanguage="Xaml" />
+    </StackPanel>
 </showcase:ShowcasePage>

@@ -320,10 +320,16 @@ public static class Scroll
         private void HandleWheel(object? sender, PointerWheelEventArgs e)
         {
             if (Engine.Current.Defaults.ReducedMotion) return;
+            // Ctrl/Cmd+wheel is the zoom gesture; on the tunnel pass this would take it from zoomable content inside.
+            if ((e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Meta)) != 0) return;
             var delta = e.Delta;
             if (delta.X != Math.Round(delta.X) || delta.Y != Math.Round(delta.Y)) return;
             // Mirrors ScrollContentPresenter: Shift turns a vertical wheel horizontal.
             if (e.KeyModifiers == KeyModifiers.Shift && delta.X == 0) delta = new Vector(delta.Y, 0);
+            for (var visual = e.Source as Visual; visual != null && visual != _scroller; visual = visual.GetVisualParent())
+            {
+                if (visual is ScrollViewer inner && WouldMove(inner, delta)) return;
+            }
             var max = _scroller.ScrollBarMaximum;
             var from = _to ?? _scroller.Offset;
             var to = new Vector(
@@ -341,6 +347,18 @@ public static class Scroll
             _to = to;
             // Rebasing drops Resume's head start; mid-ease, _from is the last frame's offset, so it times from that frame.
             _ease.Restart().ResetTime(easing ? _ease.Engine._currentTime : _ease.Engine.Now);
+        }
+
+        // ScrollContentPresenter's test: without chaining it keeps every notch while its range scrolls, at its end too.
+        private static bool WouldMove(ScrollViewer scroller, Vector delta)
+        {
+            var max = scroller.ScrollBarMaximum;
+            if (max.X <= 0 && max.Y <= 0) return false;
+            if (!scroller.IsScrollChainingEnabled) return true;
+            var offset = scroller.Offset;
+            return Moves(offset.X, max.X, delta.X) || Moves(offset.Y, max.Y, delta.Y);
+
+            static bool Moves(double offset, double max, double delta) => max > 0 && (delta < 0 ? offset < max : delta > 0 && offset > 0);
         }
 
         private void HandlePropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)

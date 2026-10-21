@@ -11,6 +11,7 @@ internal static class Composer
 
     public static TweenSiblings GetTweenSiblings(object target, string property, Additive additive)
     {
+        additive.UnparkTarget(target);
         var lookups = additive.Lookups;
         if (!lookups.TryGetValue(target, out var targetLookup)) lookups[target] = targetLookup = [];
         return GetPropertySiblings(targetLookup, property);
@@ -51,7 +52,7 @@ internal static class Composer
         if (composition != Composition.Additive) return;
 
         var additive = engine.Additive;
-        if (!additive.Lookups.TryGetValue(tween.Target, out var additiveProperties) ||
+        if ((!additive.Lookups.TryGetValue(tween.Target, out var additiveProperties) && !additive.Parked.TryGetValue(tween.Target, out additiveProperties)) ||
             !additiveProperties.TryGetValue(tween.Property, out var additiveSiblings)) return;
 
         TweenList.RemoveChild(additiveSiblings, tween, TweenLink.Additive);
@@ -74,7 +75,7 @@ internal static class Composer
         {
             if (properties._head != null) return;
         }
-        additive.Lookups.Remove(tween.Target);
+        if (!additive.Lookups.Remove(tween.Target)) additive.Parked.Remove(tween.Target);
     }
 
     /// <summary>

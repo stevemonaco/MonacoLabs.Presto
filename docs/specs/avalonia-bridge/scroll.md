@@ -103,6 +103,10 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
   - Tests: manual — needs a non-Windows head (Browser, macOS); the property must leave native wheel scrolling unchanged there.
 - **BRIDGE-SCROLL-071** — While `PrestoDefaults.ReducedMotion` is set at a notch, `Smooth` shall leave the wheel event unhandled, so the notch takes its native step at once.
   - Tests: `ScrollSmoothTests.UnderReducedMotionANotchTakesItsNativeStepAtOnce`
+- **BRIDGE-SCROLL-085** — With Control or Meta held, `Smooth` shall leave the wheel event unhandled, so content inside the scroller can take it as a zoom.
+  - Tests: `ScrollSmoothTests.AControlOrCommandNotchIsLeftForZoomableContent`
+- **BRIDGE-SCROLL-086** — When a `ScrollViewer` between the wheel event's source and the smoothed scroller would move for the notch (its offset short of the range's end in the notch's direction on an axis the notch moves, Shift applied as the presenter applies it), or has `IsScrollChainingEnabled` false and a scrollable range, `Smooth` shall leave the event unhandled.
+  - Tests: `ScrollSmoothTests.ANotchOverAnInnerScrollerThatCanMoveScrollsItAndLeavesTheOuterAlone`, `ScrollSmoothTests.AtTheInnerScrollersEndTheNextNotchIsSmoothedByTheOuter`, `ScrollSmoothTests.AShiftNotchOverAHorizontallyScrollableInnerScrollerIsYielded`, `ScrollSmoothTests.AVerticalNotchOverAHorizontalOnlyInnerScrollerIsSmoothedByTheOuter`, `ScrollSmoothTests.AnInnerScrollerWithoutScrollChainingKeepsTheNotchAtItsEnd`
 
 ### `"ScrollX"`/`"ScrollY"` shorthands
 
@@ -312,6 +316,8 @@ Everything that moves a `ScrollViewer`'s content apart from observing it: `Scrol
 - **The mask is one brush with four stops, changed in place, and the scroller's presenter is invalidated after each change.** Reason: a new brush per notification would allocate on every scroll; the renderer repaints a mask changed in place only where something under it is invalidated, and the scroller itself draws nothing, so invalidating the control left the old mask on screen until the next scroll. Rejected: invalidating the control (its render is empty); re-setting `OpacityMask` (two property changes per notification).
 - **Pin, spacing and snap follow GSAP ScrollTrigger, layered on the ported observer.** See BRIDGE-SCROLLOBSERVER.
 - **The signal is an event on `Engine`, not on `PrestoDefaults`.** See CORE-REDUCED.
+- **`Smooth` leaves Ctrl/Cmd+wheel to the content.** Its handler runs on the tunnel pass, before anything inside the scroller, so it must pass on what content inside should take: without this a zoomable child (a `Transformable` photo) inside a smoothed page scroller could never zoom, and the same holds for an inner scroller (Smooth yields to any inner scroller that would move). Reason: Ctrl/Cmd+wheel is the platform zoom gesture, never a scroll. Rejected: handling the wheel on the bubble pass (the scroller's own presenter handles it first, so nothing would be smoothed).
+- **Smooth yields to any inner scroller that would move, using the presenter's own test.** Walking from the event's source to the smoothed scroller, a `ScrollViewer` that `ScrollContentPresenter.OnPointerWheelChanged` would move for the notch, or that keeps it because `IsScrollChainingEnabled` is false, takes it unsmoothed (or through its own `Smooth`, whose tunnel handler runs after the outer one). Reason: this is native scroll chaining; the innermost scroller that can move takes the notch and the outer one takes over at the inner's end, as browsers and an unsmoothed Avalonia tree behave. Rejected: moving `Smooth` to the bubble pass (the outer presenter would already have handled the notch, so nothing would be smoothed); yielding to any inner scroller at all (a short inner list, or a horizontal-only `CodePanel`, would block page scrolling over it); yielding only to inner scrollers that have `Smooth` (the native inner case is the reported bug).
 
 ## Non-goals
 

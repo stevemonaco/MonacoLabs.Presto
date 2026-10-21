@@ -58,7 +58,7 @@
             <!-- /snippet -->
         </Border>
 
-        <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+        <showcase:SplitPanel Widths="*,*" Spacing="16">
             <Border Classes="lane" Padding="16,0">
                 <presto:Marquee x:Name="Ticker" Direction="Up" Height="160" FadeEdges="32">
                     <ItemsControl ItemsSource="{x:Static showcase:Datasets.Places}">
@@ -74,7 +74,7 @@
                 </presto:Marquee>
             </Border>
 
-            <Border Grid.Column="1" Classes="lane" Padding="16">
+            <Border Classes="lane" Padding="16">
                 <StackPanel Spacing="12" VerticalAlignment="Center">
                     <Border Width="240" HorizontalAlignment="Left" Padding="12,8" CornerRadius="8"
                             Background="{x:Static showcase:Palette.SurfaceHigh}">
@@ -84,7 +84,7 @@
                     <ToggleButton x:Name="LongTitle" Content="Long title" IsCheckedChanged="LongTitleChanged" />
                 </StackPanel>
             </Border>
-        </Grid>
+        </showcase:SplitPanel>
 
         <showcase:CodePanel Header="How it's built" IsExpanded="False"
                             Language="Xaml" Code="{x:Static showcase:Snippets.MarqueeLogoWall}" />

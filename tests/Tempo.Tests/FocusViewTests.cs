@@ -109,6 +109,28 @@ public sealed class FocusViewTests : TempoTestBase
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task SwitchingMotionMidRunRestsTheRingWhenReducedAndBreathesAgainWhenFull(bool startReduced)
+    {
+        var (window, vm) = await ShowAsync(startReduced);
+        var ring = Ring(window);
+        vm.Focus.StartPauseCommand.Execute(null);
+        TestFrames.Tick(60);
+
+        vm.Motion = MotionPreference.Reduced;
+        TestFrames.Tick(200);
+        Assert.Equal(1, Convert.ToDouble(Presto.Get(ring, "Scale", withUnit: false)), 3);
+
+        vm.Motion = MotionPreference.Full;
+        TestFrames.Tick(60);
+        Assert.True(Convert.ToDouble(Presto.Get(ring, "Scale", withUnit: false)) > 1.001);
+        Assert.Equal(TempoMotion.FocusAccent, Assert.IsAssignableFrom<ISolidColorBrush>(ring.Fill).Color);
+        window.Close();
+        await vm.FlushAsync();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task TheBreatheGuideIsPausedOutsideABreakAndPlaysDuringOne(bool reduced)
     {
         var (window, vm) = await ShowAsync(reduced);

@@ -20,105 +20,103 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer>
-        <StackPanel Spacing="12">
-            <showcase:CodePanel Code="{x:Static showcase:Snippets.TextSplit}" />
+    <StackPanel Spacing="12">
+        <showcase:CodePanel Code="{x:Static showcase:Snippets.TextSplit}" />
 
-            <Border Classes="stage" MinHeight="0">
-                <TextBlock x:Name="Headline" TextWrapping="Wrap" FontSize="30"
-                           Text="Presto splits this headline into lines and characters, then staggers every one of them into place." />
-            </Border>
+        <Border Classes="stage" MinHeight="0">
+            <TextBlock x:Name="Headline" TextWrapping="Wrap" FontSize="30"
+                       Text="Presto splits this headline into lines and characters, then staggers every one of them into place." />
+        </Border>
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Each line is wrapped in a clipping container, so the characters rise into it from below. Resize the window: the splitter re-measures where the text wraps, rebuilds the pieces and runs the effect again over the new ones." />
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="Each line is wrapped in a clipping container, so the characters rise into it from below. Resize the window: the splitter re-measures where the text wraps, rebuilds the pieces and runs the effect again over the new ones." />
 
-            <Button Content="Refresh" Click="OnRefresh" HorizontalAlignment="Left" />
+        <Button Content="Refresh" Click="OnRefresh" HorizontalAlignment="Left" />
 
-            <showcase:CodePanel x:Name="ScrambleCode" Code="{x:Static showcase:Snippets.TextScramble}" />
+        <showcase:CodePanel x:Name="ScrambleCode" Code="{x:Static showcase:Snippets.TextScramble}" />
 
-            <Border Classes="stage" MinHeight="0">
-                <TextBlock x:Name="Transmission" FontSize="26" FontFamily="Consolas, Menlo, Courier New"
-                           Text="Decoding the transmission" />
-            </Border>
+        <Border Classes="stage" MinHeight="0">
+            <TextBlock x:Name="Transmission" FontSize="26" FontFamily="Consolas, Menlo, Courier New" TextWrapping="Wrap"
+                       Text="Decoding the transmission" />
+        </Border>
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Scramble settles back on the text the block started with, wherever it is now; Change text scrambles to a different one." />
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="Scramble settles back on the text the block started with, wherever it is now; Change text scrambles to a different one." />
 
-            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Left">
-                <Button Content="Scramble" Click="OnScramble" />
-                <Button Content="Change text" Click="OnChangeText" />
-            </StackPanel>
-
-            <TextBlock Classes="caption" Text="Text reveals" Margin="0,12,0,0" />
-
-            <Border x:Name="RevealHost">
-                <StackPanel Spacing="12">
-                    <StackPanel Spacing="6">
-                        <Border Classes="stage compact" Padding="16">
-                            <!-- snippet: TextLineRise -->
-                            <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}"
-                                       presto:Animate.OnAttached="{presto:LineRise}" />
-                            <!-- /snippet -->
-                        </Border>
-                        <showcase:CodePanel x:Name="LineRiseCode" Language="Xaml" Code="{x:Static showcase:Snippets.TextLineRise}" />
-                    </StackPanel>
-
-                    <StackPanel Spacing="6">
-                        <Border Classes="stage compact" Padding="16">
-                            <!-- snippet: TextLineMask -->
-                            <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}"
-                                       presto:Animate.OnAttached="{presto:LineMask}" />
-                            <!-- /snippet -->
-                        </Border>
-                        <showcase:CodePanel Language="Xaml" Code="{x:Static showcase:Snippets.TextLineMask}" />
-                    </StackPanel>
-
-                    <StackPanel Spacing="6">
-                        <Border Classes="stage compact" Padding="16">
-                            <!-- snippet: TextLineWipe -->
-                            <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}"
-                                       presto:Animate.OnAttached="{presto:LineWipe}" />
-                            <!-- /snippet -->
-                        </Border>
-                        <showcase:CodePanel Language="Xaml" Code="{x:Static showcase:Snippets.TextLineWipe}" />
-                    </StackPanel>
-
-                    <StackPanel Spacing="6">
-                        <Border Classes="stage compact" Padding="16">
-                            <!-- snippet: TextWordFade -->
-                            <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}"
-                                       presto:Animate.OnAttached="{presto:WordFade}" />
-                            <!-- /snippet -->
-                        </Border>
-                        <showcase:CodePanel Language="Xaml" Code="{x:Static showcase:Snippets.TextWordFade}" />
-                    </StackPanel>
-
-                    <StackPanel Spacing="6">
-                        <Border Classes="stage compact" Padding="16">
-                            <!-- snippet: TextWordBlur -->
-                            <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}"
-                                       presto:Animate.OnAttached="{presto:WordBlur}" />
-                            <!-- /snippet -->
-                        </Border>
-                        <showcase:CodePanel Language="Xaml" Code="{x:Static showcase:Snippets.TextWordBlur}" />
-                    </StackPanel>
-
-                    <StackPanel Spacing="6">
-                        <Border Classes="stage compact" Padding="16">
-                            <!-- snippet: TextCharCascade -->
-                            <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}"
-                                       presto:Animate.OnAttached="{presto:CharCascade}" />
-                            <!-- /snippet -->
-                        </Border>
-                        <showcase:CodePanel Language="Xaml" Code="{x:Static showcase:Snippets.TextCharCascade}" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Each extension sets the TextReveal.Pieces it needs (and Mask for LineMask), so the block is split into those pieces, held hidden until they start, re-split on resize and rejoined when the reveal ends. Replay detaches the cards and attaches them again." />
-
-            <Button Content="Replay" Click="OnReplay" HorizontalAlignment="Left" />
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Left">
+            <Button Content="Scramble" Click="OnScramble" />
+            <Button Content="Change text" Click="OnChangeText" />
         </StackPanel>
-    </ScrollViewer>
+
+        <TextBlock Classes="caption" Text="Text reveals" Margin="0,12,0,0" />
+
+        <Border x:Name="RevealHost">
+            <StackPanel Spacing="12">
+                <StackPanel Spacing="6">
+                    <Border Classes="stage compact" Padding="16">
+                        <!-- snippet: TextLineRise -->
+                        <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}"
+                                   presto:Animate.OnAttached="{presto:LineRise}" />
+                        <!-- /snippet -->
+                    </Border>
+                    <showcase:CodePanel x:Name="LineRiseCode" Language="Xaml" Code="{x:Static showcase:Snippets.TextLineRise}" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <Border Classes="stage compact" Padding="16">
+                        <!-- snippet: TextLineMask -->
+                        <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}"
+                                   presto:Animate.OnAttached="{presto:LineMask}" />
+                        <!-- /snippet -->
+                    </Border>
+                    <showcase:CodePanel Language="Xaml" Code="{x:Static showcase:Snippets.TextLineMask}" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <Border Classes="stage compact" Padding="16">
+                        <!-- snippet: TextLineWipe -->
+                        <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}"
+                                   presto:Animate.OnAttached="{presto:LineWipe}" />
+                        <!-- /snippet -->
+                    </Border>
+                    <showcase:CodePanel Language="Xaml" Code="{x:Static showcase:Snippets.TextLineWipe}" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <Border Classes="stage compact" Padding="16">
+                        <!-- snippet: TextWordFade -->
+                        <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}"
+                                   presto:Animate.OnAttached="{presto:WordFade}" />
+                        <!-- /snippet -->
+                    </Border>
+                    <showcase:CodePanel Language="Xaml" Code="{x:Static showcase:Snippets.TextWordFade}" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <Border Classes="stage compact" Padding="16">
+                        <!-- snippet: TextWordBlur -->
+                        <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}"
+                                   presto:Animate.OnAttached="{presto:WordBlur}" />
+                        <!-- /snippet -->
+                    </Border>
+                    <showcase:CodePanel Language="Xaml" Code="{x:Static showcase:Snippets.TextWordBlur}" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <Border Classes="stage compact" Padding="16">
+                        <!-- snippet: TextCharCascade -->
+                        <TextBlock Classes="paragraph" Text="{StaticResource Paragraph}"
+                                   presto:Animate.OnAttached="{presto:CharCascade}" />
+                        <!-- /snippet -->
+                    </Border>
+                    <showcase:CodePanel Language="Xaml" Code="{x:Static showcase:Snippets.TextCharCascade}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="Each extension sets the TextReveal.Pieces it needs (and Mask for LineMask), so the block is split into those pieces, held hidden until they start, re-split on resize and rejoined when the reveal ends. Replay detaches the cards and attaches them again." />
+
+        <Button Content="Replay" Click="OnReplay" HorizontalAlignment="Left" />
+    </StackPanel>
 </showcase:ShowcasePage>

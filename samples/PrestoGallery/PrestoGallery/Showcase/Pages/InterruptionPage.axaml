@@ -33,71 +33,69 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer>
-        <StackPanel Spacing="12">
-            <TextBlock Classes="title" Text="What happens when an animation is interrupted mid-flight." />
+    <StackPanel Spacing="12">
+        <TextBlock Classes="title" TextWrapping="Wrap" Text="What happens when an animation is interrupted mid-flight." />
 
-            <TextBlock Classes="eyebrow showcase" Text="RETARGET · THREE WAYS TO CHANGE YOUR MIND" />
-            <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="6">
-                <Border Grid.Column="0" Classes="stage">
-                    <Canvas x:Name="ReplacePane" Classes="pane" PointerPressed="PanePressed">
-                        <Border x:Name="ReplacePuck" Classes="puck" Background="{x:Static showcase:Palette.Accent}" />
-                    </Canvas>
-                </Border>
-                <Border Grid.Column="1" Classes="stage">
-                    <Canvas x:Name="OverlapPane" Classes="pane" PointerPressed="PanePressed">
-                        <Border x:Name="OverlapPuck" Classes="puck" Background="{x:Static showcase:Palette.Aqua}" />
-                    </Canvas>
-                </Border>
-                <Border Grid.Column="2" Classes="stage">
-                    <Canvas x:Name="AdditivePane" Classes="pane" PointerPressed="PanePressed">
-                        <Border x:Name="AdditivePuck" Classes="puck" Background="{x:Static showcase:Palette.AccentPale}" />
-                    </Canvas>
-                </Border>
-                <TextBlock Grid.Row="1" Grid.Column="0" x:Name="ReplaceCount" Classes="mono" />
-                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="OverlapCount" Classes="mono" />
-                <TextBlock Grid.Row="1" Grid.Column="2" x:Name="AdditiveCount" Classes="mono" />
-            </Grid>
-
-            <Border Classes="rail showcase">
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                    <Button x:Name="BurstButton" Content="Burst" Click="BurstClicked" />
-                    <Button x:Name="CancelNewestButton" Content="Cancel newest" Click="CancelNewestClicked" />
-                    <Button x:Name="ResetPucks" Content="Reset" Click="ResetPucksClicked" />
-                </StackPanel>
+        <TextBlock Classes="eyebrow showcase" Text="RETARGET · THREE WAYS TO CHANGE YOUR MIND" />
+        <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="6">
+            <Border Grid.Column="0" Classes="stage">
+                <Canvas x:Name="ReplacePane" Classes="pane" PointerPressed="PanePressed">
+                    <Border x:Name="ReplacePuck" Classes="puck" Background="{x:Static showcase:Palette.Accent}" />
+                </Canvas>
             </Border>
-            <StackPanel Orientation="Horizontal" Spacing="4">
-                <TextBlock Classes="caption" VerticalAlignment="Center" Text="A spring follower keeps its velocity through every retarget:" />
-                <HyperlinkButton x:DataType="vm:MainViewModel" Padding="0" FontSize="12" VerticalAlignment="Center"
-                                 Content="Springs" Command="{Binding OpenCommand}" CommandParameter="Springs" />
+            <Border Grid.Column="1" Classes="stage">
+                <Canvas x:Name="OverlapPane" Classes="pane" PointerPressed="PanePressed">
+                    <Border x:Name="OverlapPuck" Classes="puck" Background="{x:Static showcase:Palette.Aqua}" />
+                </Canvas>
+            </Border>
+            <Border Grid.Column="2" Classes="stage">
+                <Canvas x:Name="AdditivePane" Classes="pane" PointerPressed="PanePressed">
+                    <Border x:Name="AdditivePuck" Classes="puck" Background="{x:Static showcase:Palette.AccentPale}" />
+                </Canvas>
+            </Border>
+            <TextBlock Grid.Row="1" Grid.Column="0" x:Name="ReplaceCount" Classes="mono" />
+            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="OverlapCount" Classes="mono" />
+            <TextBlock Grid.Row="1" Grid.Column="2" x:Name="AdditiveCount" Classes="mono" />
+        </Grid>
+
+        <Border Classes="rail showcase">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="BurstButton" Content="Burst" Click="BurstClicked" />
+                <Button x:Name="CancelNewestButton" Content="Cancel newest" Click="CancelNewestClicked" />
+                <Button x:Name="ResetPucks" Content="Reset" Click="ResetPucksClicked" />
             </StackPanel>
+        </Border>
+        <WrapPanel ItemSpacing="4" LineSpacing="8">
+            <TextBlock Classes="caption" VerticalAlignment="Center" Text="A spring follower keeps its velocity through every retarget:" />
+            <HyperlinkButton x:DataType="vm:MainViewModel" Padding="0" FontSize="12" VerticalAlignment="Center"
+                             Content="Springs" Command="{Binding OpenCommand}" CommandParameter="Springs" />
+        </WrapPanel>
 
-            <TextBlock Classes="eyebrow showcase" Text="HOVER · INTERRUPT FROM WHERE YOU ARE" />
-            <Border Classes="rail showcase">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                    <UniformGrid x:Name="Tiles" Columns="5" Margin="0,18,0,4">
-                        <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
-                            <TextBlock Classes="title" Text="Tile 1" />
-                        </Border>
-                        <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
-                            <TextBlock Classes="title" Text="Tile 2" />
-                        </Border>
-                        <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
-                            <TextBlock Classes="title" Text="Tile 3" />
-                        </Border>
-                        <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
-                            <TextBlock Classes="title" Text="Tile 4" />
-                        </Border>
-                        <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
-                            <TextBlock Classes="title" Text="Tile 5" />
-                        </Border>
-                    </UniformGrid>
-                    <ToggleSwitch Grid.Column="1" x:Name="HoverMode" VerticalAlignment="Center"
-                                  OffContent="retarget" OnContent="restart" />
-                </Grid>
-            </Border>
+        <TextBlock Classes="eyebrow showcase" Text="HOVER · INTERRUPT FROM WHERE YOU ARE" />
+        <Border Classes="rail showcase">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <UniformGrid x:Name="Tiles" Columns="5" Margin="0,18,0,4">
+                    <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
+                        <TextBlock Classes="title" Text="Tile 1" />
+                    </Border>
+                    <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
+                        <TextBlock Classes="title" Text="Tile 2" />
+                    </Border>
+                    <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
+                        <TextBlock Classes="title" Text="Tile 3" />
+                    </Border>
+                    <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
+                        <TextBlock Classes="title" Text="Tile 4" />
+                    </Border>
+                    <Border Classes="card showcase tile" PointerEntered="TileEntered" PointerExited="TileExited">
+                        <TextBlock Classes="title" Text="Tile 5" />
+                    </Border>
+                </UniformGrid>
+                <ToggleSwitch Grid.Column="1" x:Name="HoverMode" VerticalAlignment="Center"
+                              OffContent="retarget" OnContent="restart" />
+            </Grid>
+        </Border>
 
-            <showcase:CodePanel x:Name="HowCode" Header="How it's built" IsExpanded="False" />
-        </StackPanel>
-    </ScrollViewer>
+        <showcase:CodePanel x:Name="HowCode" Header="How it's built" IsExpanded="False" />
+    </StackPanel>
 </showcase:ShowcasePage>

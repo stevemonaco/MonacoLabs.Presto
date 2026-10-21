@@ -15,6 +15,12 @@ public abstract class ShowcasePage : UserControl
     /// <summary>The page's lifetime, current while <see cref="OnAttached"/> runs; it reverts itself on detach.</summary>
     public ControlScope Scope { get; }
 
+    /// <summary>
+    /// Whether the page fills the shell's viewport and scrolls inside itself (a chat log, a scroll story), instead of
+    /// growing to its content and scrolling with the shell.
+    /// </summary>
+    public bool FillsViewport { get; set; }
+
     /// <summary>Builds the page's animations, with <see cref="Scope"/> current so they register with it.</summary>
     protected virtual void OnAttached()
     {

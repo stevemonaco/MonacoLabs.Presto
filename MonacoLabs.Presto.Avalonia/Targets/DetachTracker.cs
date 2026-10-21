@@ -109,6 +109,7 @@ internal sealed class DetachTracker(Timer root, WhenDetached mode)
             {
                 root.Pause();
                 _paused = true;
+                root.OwnerEngine.Additive.Park(root);
             }
         }
     }
@@ -116,6 +117,7 @@ internal sealed class DetachTracker(Timer root, WhenDetached mode)
     private void Resume()
     {
         _paused = false;
+        root.OwnerEngine.Additive.Unpark(root);
         root.Resume();
     }
 }

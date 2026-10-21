@@ -1,0 +1,61 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #121318;
+}
+
+/* IntroView's stack (ring, wordmark, tagline, 28 apart), so the ring sits where the intro draws its track. */
+.avalonia-splash {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 28px;
+    background: #121318;
+    pointer-events: none;
+}
+
+/* With pathLength 240 on a 240 viewport, a percentage dash is that share of the circle. */
+.splash-fill {
+    stroke-dasharray: var(--wasm-load-percentage, 0%) 240px;
+}
+
+.loaded .splash-fill {
+    animation: splash-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes splash-pulse {
+    50% { opacity: 0.6; }
+}
+
+/* The intro's Wordmark (Inter 51) and Tagline (Inter 15) heights. */
+.splash-wordmark {
+    height: 62px;
+}
+
+.splash-tagline {
+    height: 19px;
+}
+
+.splash-error {
+    max-width: min(480px, 90vw);
+    margin: 0;
+    color: #F2735E;
+    font: 0.875rem system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    text-align: center;
+    white-space: pre-wrap;
+}
+
+.avalonia-splash.splash-close {
+    opacity: 0;
+    display: none;
+    transition: opacity 250ms, display 250ms allow-discrete;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .loaded .splash-fill {
+        animation: none;
+    }
+}

@@ -1,0 +1,187 @@
+<showcase:ShowcasePage xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
+                       xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
+                       mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
+                       x:Class="PrestoGallery.Showcase.Pages.AdaptiveSheetPage" FillsViewport="True">
+    <showcase:ShowcasePage.Styles>
+        <Style Selector="TabStripItem">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="12,0" />
+        </Style>
+        <Style Selector="Border#Stage">
+            <Setter Property="Background" Value="{x:Static showcase:Palette.Background}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <Style Selector="Button.note">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="CornerRadius" Value="0" />
+        </Style>
+        <Style Selector="Border.sheet">
+            <Setter Property="Background" Value="{x:Static showcase:Palette.SurfaceHigh}" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="Padding" Value="20" />
+        </Style>
+        <Style Selector="presto|Sheet:right Border.sheet">
+            <Setter Property="Width" Value="300" />
+            <Setter Property="BorderThickness" Value="1,0,0,0" />
+        </Style>
+        <Style Selector="presto|Sheet:bottom Border.sheet">
+            <Setter Property="Padding" Value="20,0,20,20" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+            <Setter Property="CornerRadius" Value="16,16,0,0" />
+        </Style>
+        <Style Selector="FlyoutPresenter Border.sheet">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="4" />
+        </Style>
+
+        <!-- snippet: AdaptiveSheetStyles -->
+        <!-- The stage is the container; at 720 DIP the same two sheets change form, open or not. -->
+        <ContainerQuery Name="notes" Query="min-width:720">
+            <Style Selector="presto|Sheet#DetailsSheet">
+                <Setter Property="Edge" Value="Right" />
+                <Setter Property="EdgeSwipe" Value="20" />
+            </Style>
+            <Style Selector="presto|Sheet#SettingsSheet">
+                <Setter Property="Presentation" Value="Anchored" />
+            </Style>
+        </ContainerQuery>
+        <ContainerQuery Name="notes" Query="max-width:719">
+            <Style Selector="presto|Sheet#DetailsSheet">
+                <Setter Property="Edge" Value="Bottom" />
+                <Setter Property="EdgeSwipe" Value="0" />
+                <Setter Property="Detents" Value="0,0.5,1" />
+            </Style>
+            <Style Selector="presto|Sheet#SettingsSheet">
+                <Setter Property="Presentation" Value="Edge" />
+            </Style>
+        </ContainerQuery>
+        <Style Selector="Border.grab">
+            <Setter Property="IsVisible" Value="False" />
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="4" />
+            <Setter Property="Margin" Value="0,10,0,14" />
+            <Setter Property="CornerRadius" Value="2" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.InkDim}" />
+        </Style>
+        <Style Selector="presto|Sheet:bottom Border.grab">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <!-- /snippet -->
+    </showcase:ShowcasePage.Styles>
+
+    <DockPanel>
+        <showcase:CodePanel DockPanel.Dock="Bottom" x:Name="HowCode" Header="How it's built" IsExpanded="False"
+                            Language="Xaml" Margin="0,10,0,0" />
+
+        <Border DockPanel.Dock="Top" Classes="rail showcase" Margin="0,0,0,10">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center">
+                    <TextBlock x:Name="DetailsReadout" Classes="mono" Margin="0">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="Details   IsOpen {0}  DetentIndex {1}  Edge {2}  Presentation {3}">
+                                <Binding ElementName="DetailsSheet" Path="IsOpen" />
+                                <Binding ElementName="DetailsSheet" Path="DetentIndex" />
+                                <Binding ElementName="DetailsSheet" Path="Edge" />
+                                <Binding ElementName="DetailsSheet" Path="Presentation" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                    <TextBlock x:Name="SettingsReadout" Classes="mono" Margin="0">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="Settings  IsOpen {0}  DetentIndex {1}  Edge {2}  Presentation {3}">
+                                <Binding ElementName="SettingsSheet" Path="IsOpen" />
+                                <Binding ElementName="SettingsSheet" Path="DetentIndex" />
+                                <Binding ElementName="SettingsSheet" Path="Edge" />
+                                <Binding ElementName="SettingsSheet" Path="Presentation" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                </StackPanel>
+                <TabStrip x:Name="Widths" SelectedIndex="2">
+                    <TabStrip.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </TabStrip.ItemsPanel>
+                    <TabStripItem Content="Phone" />
+                    <TabStripItem Content="Tablet" />
+                    <TabStripItem Content="Desktop" />
+                </TabStrip>
+            </DockPanel>
+        </Border>
+
+        <Border Classes="stage" Padding="16">
+            <Border x:Name="Stage" Container.Name="notes" Container.Sizing="Width">
+                <Grid RowDefinitions="Auto,*">
+                    <Grid ColumnDefinitions="*,Auto" Margin="16,12,8,4">
+                        <TextBlock Text="Trip notes" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   Foreground="{x:Static showcase:Palette.Ink}" />
+                        <Button x:Name="Gear" Grid.Column="1" Classes="bare" Width="36" Height="36" ToolTip.Tip="Settings"
+                                Click="GearClicked">
+                            <PathIcon Data="{StaticResource GearIcon}" Width="16" Height="16" Foreground="{x:Static showcase:Palette.InkDim}" />
+                        </Button>
+                    </Grid>
+                    <ScrollViewer Grid.Row="1">
+                        <ItemsControl x:Name="Notes" ItemsSource="{x:Static showcase:Datasets.Places}" Button.Click="NoteClicked">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="showcase:Datasets+Place">
+                                    <Button Classes="note">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="{Binding City}" FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.Ink}" />
+                                            <TextBlock Classes="caption" Text="{Binding Blurb}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- snippet: AdaptiveSheetDetails -->
+                    <presto:Sheet x:Name="DetailsSheet" Grid.RowSpan="2">
+                        <Border Classes="sheet">
+                            <DockPanel x:Name="Details" x:DataType="showcase:Datasets+Place">
+                                <Border Classes="grab" DockPanel.Dock="Top" />
+                                <StackPanel Spacing="6">
+                                    <TextBlock Classes="eyebrow showcase" Text="{Binding Country}" />
+                                    <TextBlock Text="{Binding City}" FontSize="22" FontWeight="SemiBold" Foreground="{x:Static showcase:Palette.Ink}" />
+                                    <TextBlock Text="{Binding Blurb}" TextWrapping="Wrap" Foreground="{x:Static showcase:Palette.InkDim}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </presto:Sheet>
+                    <!-- /snippet -->
+
+                    <!-- snippet: AdaptiveSheetSettings -->
+                    <presto:Sheet x:Name="SettingsSheet" Grid.RowSpan="2" Anchor="{Binding #Gear}">
+                        <presto:Sheet.Flyout>
+                            <Flyout Placement="BottomEdgeAlignedRight"
+                                    presto:Popover.Open="{presto:Popover}" presto:Popover.Close="{presto:Popover Out=True}" />
+                        </presto:Sheet.Flyout>
+                        <Border Classes="sheet">
+                            <DockPanel>
+                                <Border Classes="grab" DockPanel.Dock="Top" />
+                                <StackPanel Spacing="4">
+                                    <TextBlock Classes="eyebrow showcase" Text="SETTINGS" />
+                                    <ToggleSwitch Content="Show previews" IsChecked="True" />
+                                    <ToggleSwitch Content="Sync to cloud" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </presto:Sheet>
+                    <!-- /snippet -->
+                </Grid>
+            </Border>
+        </Border>
+    </DockPanel>
+</showcase:ShowcasePage>

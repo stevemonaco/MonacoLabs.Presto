@@ -132,9 +132,16 @@
         </DataTemplate>
     </Styles.Resources>
 
+    <!-- Over Semi's window background, which would hide the window material. -->
     <Style Selector="Window">
-        <Setter Property="FontFamily" Value="fonts:Inter#Inter" />
         <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="v|MainView">
+        <Setter Property="FontFamily" Value="fonts:Inter#Inter" />
+    </Style>
+    <!-- Off a window there is no material, so the root paints the base the shell's translucency was tuned over. -->
+    <Style Selector="v|MainView:not(.windowed)">
+        <Setter Property="Background" Value="#121318" />
     </Style>
     <!-- Every scroller, template parts included: wheel notches ease on Windows, and reduced motion keeps native steps. -->
     <Style Selector="ScrollViewer">
@@ -167,6 +174,10 @@
         <Setter Property="BorderBrush" Value="{DynamicResource TempoLine}" />
         <Setter Property="BorderThickness" Value="0,0,0,1" />
         <Setter Property="WindowDecorationProperties.ElementRole" Value="TitleBar" />
+    </Style>
+    <!-- Clear of the system caption buttons, which only a window has. -->
+    <Style Selector="v|MainView:not(.windowed) Border#CaptionClearance">
+        <Setter Property="IsVisible" Value="False" />
     </Style>
     <!-- A caption hit-tests as non-client, so its moves never reach the fullscreen popover's top-edge trigger. -->
     <Style Selector="Window[WindowState=FullScreen] Border.titlebar">

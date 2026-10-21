@@ -34,12 +34,13 @@ public sealed class ParticleFieldLoadTests
     {
         var page = new ParticleFieldPage();
         var window = SceneHarness.Show(page, Width, Height);
+        var host = window.Content;
         Assert.True(await SceneHarness.Pump(() => Drawn(page, window)), "the field never drew");
 
         var clock = Stopwatch.StartNew();
         window.Content = null;
         TestFrames.Tick();
-        window.Content = page;
+        window.Content = host;
         Assert.True(await SceneHarness.Pump(() => Drawn(page, window)), "the field never drew again");
         var elapsed = clock.Elapsed;
         SceneHarness.Close(window);

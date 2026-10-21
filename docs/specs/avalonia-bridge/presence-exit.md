@@ -119,7 +119,7 @@ The departure half of `Presence` (BRIDGE-PRESENCE): which departures play `Prese
 - **BRIDGE-PRESENCE-EXIT-042** — When an element attaches again before its batch starts, `Presence` shall dismiss its ghost with no exit, end the wait it started, and leave the other members' order unchanged.
   - Tests: `PresenceExitBatchTests.AnElementRemovedAndInsertedAgainInOneJobLeavesNoGhostAndTheOthersKeepTheirIndices`
 - **BRIDGE-PRESENCE-EXIT-043** — A ghost's `DataContext` shall be the leaving element's `DataContext`.
-  - Tests: `PresenceExitBatchTests.AnElementRemovedAndInsertedAgainInOneJobLeavesNoGhostAndTheOthersKeepTheirIndices`
+  - Tests: `PresenceExitBatchTests.ASingleRemovalPlaysAtIndexZeroOfOne`, `PresenceExitBatchTests.AnElementRemovedAndInsertedAgainInOneJobLeavesNoGhostAndTheOthersKeepTheirIndices`
 - **BRIDGE-PRESENCE-EXIT-044** — Under `ReduceAll`, a departure whose exit `ReduceAll` makes instant (not a `WhenReduced` form) shall start at the departure, outside any batch.
   - Tests: `PresenceExitBatchTests.UnderReduceAllAClearLeavesNoGhostInTheSameCall`, `PresenceTextExitTests.ReduceAllLeavesNoGhost`
 - **BRIDGE-PRESENCE-EXIT-045** — A split `TextBlock`'s piece ghosts shall be their own batch (BRIDGE-PRESENCE-EXIT-024), started at the departure, and `AnimateExit` and hides shall start at once and join no batch.

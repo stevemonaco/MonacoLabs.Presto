@@ -102,99 +102,105 @@
         </Style>
     </UserControl.Styles>
 
-    <ScrollViewer>
-        <StackPanel Spacing="12">
-            <Border Classes="stage" MinHeight="400">
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="28" Margin="24" VerticalAlignment="Top">
-                    <ContentControl x:Name="Host" VerticalAlignment="Top" />
-                    <StackPanel Grid.Column="1" Spacing="8">
-                        <TextBlock Classes="caption" Text="Moments, newest first" />
-                        <showcase:MomentLog x:Name="Moments" />
-                    </StackPanel>
-                </Grid>
-            </Border>
-
-            <WrapPanel Orientation="Horizontal">
-                <Button Content="Navigate" Click="Navigate" Margin="0,0,8,8" />
-                <Button Content="Show this view again" Click="ShowAgain" Margin="0,0,8,8" />
-                <Button Content="Add row" Click="AddRow" Margin="0,0,8,8" />
-                <Button Content="Remove row" Click="RemoveRow" Margin="0,0,8,8" />
-                <Button Content="Clear rows" Click="ClearRows" Margin="0,0,8,8" />
-            </WrapPanel>
-
-            <showcase:CodePanel x:Name="RowCode" />
-
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Every arrival and departure of a row is classified once, by one rule, and plays only its own builder. Initial: the row appears with its view, when you navigate here, navigate between the views, or show a view again; rows arriving in one pass stagger by arrival order. Enter: a row arrives on its own into a view that has already loaded (Add row). Exit: a row leaves on its own while its list stays (Remove row), played on a ghost. Clear rows removes every row in one change, so their ghosts leave as one batch, top first in turn, by the exit's Presto.Stagger; the list and its &quot;No rows&quot; line share a panel with Presence.Mode=&quot;Wait&quot;, so the line fades in only once the last ghost ends. Unload: the whole view leaves with Navigate, and nothing plays. The log is written by each builder's OnBegin, so it shows what Presence decided rather than what the button meant." />
-
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Navigate to the third view, Archive, a ListBox of 300 rows that virtualizes: only the rows on screen exist, and scrolling recycles their controls for other items. Scroll it and the log stays quiet: a row realized or recycled by scrolling is neither an arrival nor a departure, because its item never left the list. Inside a list, Presence enters a row only when its item was just added and exits one only when its item was just removed, so Add row and Remove row still animate; they act on the rows currently on screen." />
-
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="The rule: an arriving element's ancestors are walked up past the new wrappers around it, such as its item container, and stop at the first panel or other host. A loaded host (Control.IsLoaded) means the element entered on its own; a host still in its first layout means it came with its view. In an item container, the list's own item changes decide instead. Animate.OnAttached remains the raw trigger beside these, playing on every attach unclassified. To ease the other rows into the gap an arrival or exit leaves, put Animate.ItemLayout on the list, or Animate.Layout on a wrapper: layout goes on the container and Presence on the content, because both drive the same composition Translation and Scale." />
-
-            <Border Classes="stage" MinHeight="180">
-                <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <ContentControl x:Name="Swapper" Width="260" Height="120" />
-                    <Button Content="Swap" Click="Swap" HorizontalAlignment="Center" />
+    <StackPanel Spacing="12">
+        <Border Classes="stage" MinHeight="400">
+            <showcase:SplitPanel Widths="Auto,*" Spacing="28" Breakpoint="640" Margin="24" VerticalAlignment="Top">
+                <ContentControl x:Name="Host" VerticalAlignment="Top" />
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="caption" Text="Moments, newest first" />
+                    <showcase:MomentLog x:Name="Moments" />
                 </StackPanel>
-            </Border>
+            </showcase:SplitPanel>
+        </Border>
 
-            <showcase:CodePanel x:Name="SwapCode" />
+        <WrapPanel Orientation="Horizontal">
+            <Button Content="Navigate" Click="Navigate" Margin="0,0,8,8" />
+            <Button Content="Show this view again" Click="ShowAgain" Margin="0,0,8,8" />
+            <Button Content="Add row" Click="AddRow" Margin="0,0,8,8" />
+            <Button Content="Remove row" Click="RemoveRow" Margin="0,0,8,8" />
+            <Button Content="Remove three" Click="RemoveThree" Margin="0,0,8,8" />
+            <Button Content="Clear rows" Click="ClearRows" Margin="0,0,8,8" />
+            <TextBlock Classes="caption" Text="Exit from" VerticalAlignment="Center" Margin="8,0,8,8" />
+            <ComboBox x:Name="ExitOrderPicker" Width="110" SelectionChanged="ExitOrderChanged" Margin="0,0,8,8" />
+            <TextBlock Classes="caption" Text="Host" VerticalAlignment="Center" Margin="8,0,8,8" />
+            <ComboBox x:Name="HostModePicker" Width="110" SelectionChanged="HostModeChanged" Margin="0,0,8,8">
+                <ComboBoxItem Content="Sync" />
+                <ComboBoxItem Content="Wait" />
+            </ComboBox>
+        </WrapPanel>
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="A ContentControl swapping its content: the old view's exit plays on its ghost while the new view enters in the same slot, so the two crossfade. A whole page navigated away is not ghosted: an element leaves on its own only when everything between it and what was removed wraps nothing else." />
+        <showcase:CodePanel x:Name="RowCode" />
 
-            <Border Classes="stage" MinHeight="220">
-                <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <!-- snippet: LifecycleWizard -->
-                    <ContentControl x:Name="Wizard" Width="300" Height="140" presto:Presence.Mode="Wait" />
-                    <!-- /snippet -->
-                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                        <Button x:Name="BackButton" Content="Back" Click="WizardBack" />
-                        <Button x:Name="NextButton" Content="Next" Click="WizardNext" />
-                        <ComboBox x:Name="ModePicker" Width="130" SelectionChanged="ModeChanged">
-                            <ComboBoxItem Content="Sync" />
-                            <ComboBoxItem Content="Wait" />
-                        </ComboBox>
-                    </StackPanel>
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="Every arrival and departure of a row is classified once, by one rule, and plays only its own builder. Initial: the row appears with its view, when you navigate here, navigate between the views, or show a view again; rows arriving in one pass stagger by arrival order. Enter: a row arrives on its own into a view that has already loaded (Add row). Exit: a row leaves on its own while its list stays (Remove row), played on a ghost. Rows removed together leave as one batch, ordered by where their ghosts stand, top to bottom, so the exit's Presto.Stagger runs from the picked end: Remove three takes every other row on screen in one call, and Clear rows takes them all; each exit logs the row it plays on, so the log shows the batch order. The list and its &quot;No rows&quot; line share a host whose Presence.Mode the Host picker sets: with Wait, the rows leave in the picked order and only then does the line fade in; with Sync, the line fades in while the rows are still leaving. Unload: the whole view leaves with Navigate, and nothing plays. The log is written by each builder's OnBegin, so it shows what Presence decided rather than what the button meant." />
+
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="Navigate to the third view, Archive, a ListBox of 300 rows that virtualizes: only the rows on screen exist, and scrolling recycles their controls for other items. Scroll it and the log stays quiet: a row realized or recycled by scrolling is neither an arrival nor a departure, because its item never left the list. Inside a list, Presence enters a row only when its item was just added and exits one only when its item was just removed, so Add row and Remove row still animate; they act on the rows currently on screen." />
+
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="The rule: an arriving element's ancestors are walked up past the new wrappers around it, such as its item container, and stop at the first panel or other host. A loaded host (Control.IsLoaded) means the element entered on its own; a host still in its first layout means it came with its view. In an item container, the list's own item changes decide instead. Animate.OnAttached remains the raw trigger beside these, playing on every attach unclassified. To ease the other rows into the gap an arrival or exit leaves, put Animate.ItemLayout on the list, or Animate.Layout on a wrapper: layout goes on the container and Presence on the content, because both drive the same composition Translation and Scale." />
+
+        <Border Classes="stage" MinHeight="180">
+            <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ContentControl x:Name="Swapper" Width="260" Height="120" />
+                <Button Content="Swap" Click="Swap" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
+
+        <showcase:CodePanel x:Name="SwapCode" />
+
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="A ContentControl swapping its content: the old view's exit plays on its ghost while the new view enters in the same slot, so the two crossfade. A whole page navigated away is not ghosted: an element leaves on its own only when everything between it and what was removed wraps nothing else." />
+
+        <Border Classes="stage" MinHeight="220">
+            <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <!-- snippet: LifecycleWizard -->
+                <ContentControl x:Name="Wizard" Width="300" Height="140" presto:Presence.Mode="Wait" />
+                <!-- /snippet -->
+                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                    <Button x:Name="BackButton" Content="Back" Click="WizardBack" />
+                    <Button x:Name="NextButton" Content="Next" Click="WizardNext" />
+                    <ComboBox x:Name="ModePicker" Width="130" SelectionChanged="ModeChanged">
+                        <ComboBoxItem Content="Sync" />
+                        <ComboBoxItem Content="Wait" />
+                    </ComboBox>
                 </StackPanel>
-            </Border>
+            </StackPanel>
+        </Border>
 
-            <showcase:CodePanel x:Name="WizardCode" Language="Xaml" />
+        <showcase:CodePanel x:Name="WizardCode" Language="Xaml" />
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="A wizard in a ContentControl with Presence.Mode=&quot;Wait&quot;: the old step slides out on its ghost, and only when that exit ends does the next step slide in, held at opacity 0 until then. Switch the picker to Sync and the two overlap as the crossfade above does. Press Next twice quickly: the step that was still waiting leaves unseen, without a ghost, and the third waits for the first's exit alone." />
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="A wizard in a ContentControl with Presence.Mode=&quot;Wait&quot;: the old step slides out on its ghost, and only when that exit ends does the next step slide in, held at opacity 0 until then. Switch the picker to Sync and the two overlap as the crossfade above does. Press Next twice quickly: the step that was still waiting leaves unseen, without a ghost, and the third waits for the first's exit alone." />
 
-            <Border Classes="stage">
-                <StackPanel Spacing="14" Margin="24">
-                    <WrapPanel>
-                        <RadioButton Content="All" IsChecked="True" Margin="0,0,14,0" IsCheckedChanged="TagChanged" />
-                        <RadioButton Content="Home" Margin="0,0,14,0" IsCheckedChanged="TagChanged" />
-                        <RadioButton Content="Work" Margin="0,0,14,0" IsCheckedChanged="TagChanged" />
-                        <RadioButton Content="Errand" IsCheckedChanged="TagChanged" />
-                    </WrapPanel>
-                    <WrapPanel>
-                        <Border Classes="view" Width="260" Margin="0,0,16,16" VerticalAlignment="Top">
-                            <StackPanel>
-                                <TextBlock Classes="title" Text="To do" />
-                                <ItemsControl x:Name="OpenList" ClipToBounds="False" />
-                            </StackPanel>
-                        </Border>
-                        <Border Classes="view" Width="260" Margin="0,0,16,16" VerticalAlignment="Top">
-                            <StackPanel>
-                                <TextBlock Classes="title" Text="Done" />
-                                <ItemsControl x:Name="DoneList" ClipToBounds="False" MinHeight="34" />
-                            </StackPanel>
-                        </Border>
-                    </WrapPanel>
-                </StackPanel>
-            </Border>
+        <Border Classes="stage">
+            <StackPanel Spacing="14" Margin="24">
+                <WrapPanel>
+                    <RadioButton Content="All" IsChecked="True" Margin="0,0,14,0" IsCheckedChanged="TagChanged" />
+                    <RadioButton Content="Home" Margin="0,0,14,0" IsCheckedChanged="TagChanged" />
+                    <RadioButton Content="Work" Margin="0,0,14,0" IsCheckedChanged="TagChanged" />
+                    <RadioButton Content="Errand" IsCheckedChanged="TagChanged" />
+                </WrapPanel>
+                <WrapPanel>
+                    <Border Classes="view" Width="260" Margin="0,0,16,16" VerticalAlignment="Top">
+                        <StackPanel>
+                            <TextBlock Classes="title" Text="To do" />
+                            <ItemsControl x:Name="OpenList" ClipToBounds="False" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="view" Width="260" Margin="0,0,16,16" VerticalAlignment="Top">
+                        <StackPanel>
+                            <TextBlock Classes="title" Text="Done" />
+                            <ItemsControl x:Name="DoneList" ClipToBounds="False" MinHeight="34" />
+                        </StackPanel>
+                    </Border>
+                </WrapPanel>
+            </StackPanel>
+        </Border>
 
-            <showcase:CodePanel x:Name="TransferCode" />
+        <showcase:CodePanel x:Name="TransferCode" />
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="Click a row to move it to the other list. The To do list shows a FilteredView of its collection: a chip re-evaluates the filter and the view raises one change per row, never a reset, so each hidden row exits and each shown row enters while the rest ease. Both lists share Animate.ItemGroup, so a row removed from one and added to the other in the same layout pass is one item changing lists: its new row flies from where the old one was drawn, with no exit ghost and no entrance. The removal must come first, both lists need ItemLayout, and a destination that is collapsed or hidden declines the flight, so the leaver exits and the arrival enters as without a group." />
-        </StackPanel>
-    </ScrollViewer>
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="Click a row to move it to the other list. The To do list shows a FilteredView of its collection: a chip re-evaluates the filter and the view raises one change per row, never a reset, so each hidden row exits and each shown row enters while the rest ease. Both lists share Animate.ItemGroup, so a row removed from one and added to the other in the same layout pass is one item changing lists: its new row flies from where the old one was drawn, with no exit ghost and no entrance. The removal must come first, both lists need ItemLayout, and a destination that is collapsed or hidden declines the flight, so the leaver exits and the arrival enters as without a group." />
+    </StackPanel>
 </UserControl>

@@ -14,20 +14,20 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer>
-        <StackPanel Spacing="16">
-            <Border Classes="stage" MinHeight="220">
-                <StackPanel x:Name="Squares" Orientation="Horizontal" Spacing="14" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Accent}" />
-                    <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Aqua}" />
-                    <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Amber}" />
-                    <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Coral}" />
-                    <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Violet}" />
-                    <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Lime}" />
-                </StackPanel>
-            </Border>
+    <StackPanel Spacing="16">
+        <Border Classes="stage" MinHeight="220">
+            <StackPanel x:Name="Squares" Orientation="Horizontal" Spacing="14" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Accent}" />
+                <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Aqua}" />
+                <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Amber}" />
+                <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Coral}" />
+                <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Violet}" />
+                <Border Classes="swatch" Width="40" Height="40" Background="{x:Static showcase:Palette.Lime}" />
+            </StackPanel>
+        </Border>
 
-            <Grid x:Name="Controls" ColumnDefinitions="Auto,*,32,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
+        <showcase:SplitPanel x:Name="Controls" Widths="*,*" Spacing="32">
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
                 <TextBlock Classes="caption" Text="{Binding #XSlider.Value, StringFormat='X {0:0}'}" />
                 <Slider x:Name="XSlider" Grid.Column="1" Minimum="-200" Maximum="200" Value="0" ValueChanged="SliderChanged" />
                 <TextBlock Classes="caption" Grid.Row="1" Text="{Binding #YSlider.Value, StringFormat='Y {0:0}'}" />
@@ -38,9 +38,11 @@
                 <Slider x:Name="ScaleSlider" Grid.Row="3" Grid.Column="1" Minimum="0.2" Maximum="2" Value="1" ValueChanged="SliderChanged" />
                 <TextBlock Classes="caption" Grid.Row="4" Text="{Binding #DurationSlider.Value, StringFormat='Duration {0:0}'}" />
                 <Slider x:Name="DurationSlider" Grid.Row="4" Grid.Column="1" Minimum="100" Maximum="3000" Value="900" ValueChanged="SliderChanged" />
-
-                <TextBlock Classes="caption" Grid.Column="3" Text="Ease" />
-                <ComboBox x:Name="EaseBox" Grid.Column="4" SelectedIndex="3" SelectionChanged="SelectionChanged">
+    
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
+                <TextBlock Classes="caption" Text="Ease" />
+                <ComboBox x:Name="EaseBox" Grid.Column="1" SelectedIndex="3" SelectionChanged="SelectionChanged">
                     <ComboBoxItem Content="linear" />
                     <ComboBoxItem Content="outQuad" />
                     <ComboBoxItem Content="inOutQuint" />
@@ -50,23 +52,23 @@
                     <ComboBoxItem Content="inOutSine" />
                     <ComboBoxItem Content="steps(6)" />
                 </ComboBox>
-                <TextBlock Classes="caption" Grid.Row="1" Grid.Column="3" Text="{Binding #StaggerSlider.Value, StringFormat='Stagger {0:0}'}" />
-                <Slider x:Name="StaggerSlider" Grid.Row="1" Grid.Column="4" Minimum="0" Maximum="300" Value="80" ValueChanged="SliderChanged" />
-                <TextBlock Classes="caption" Grid.Row="2" Grid.Column="3" Text="From" />
-                <ComboBox x:Name="FromBox" Grid.Row="2" Grid.Column="4" SelectedIndex="1" SelectionChanged="SelectionChanged">
+                <TextBlock Classes="caption" Grid.Row="1" Text="{Binding #StaggerSlider.Value, StringFormat='Stagger {0:0}'}" />
+                <Slider x:Name="StaggerSlider" Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="300" Value="80" ValueChanged="SliderChanged" />
+                <TextBlock Classes="caption" Grid.Row="2" Text="From" />
+                <ComboBox x:Name="FromBox" Grid.Row="2" Grid.Column="1" SelectedIndex="1" SelectionChanged="SelectionChanged">
                     <ComboBoxItem Content="First" />
                     <ComboBoxItem Content="Center" />
                     <ComboBoxItem Content="Last" />
                     <ComboBoxItem Content="Random" />
                 </ComboBox>
-                <StackPanel Grid.Row="3" Grid.Column="3" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="16">
+                <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="16">
                     <CheckBox x:Name="LoopBox" Content="Loop" IsChecked="True" IsCheckedChanged="CheckChanged" />
                     <CheckBox x:Name="AlternateBox" Content="Alternate" IsChecked="True" IsCheckedChanged="CheckChanged" />
                 </StackPanel>
-                <Button Grid.Row="4" Grid.Column="3" Grid.ColumnSpan="2" Content="Replay" Click="Replay" />
+                <Button Grid.Row="4" Grid.ColumnSpan="2" Content="Replay" Click="Replay" />
             </Grid>
+        </showcase:SplitPanel>
 
-            <showcase:CodePanel x:Name="CodeText" />
-        </StackPanel>
-    </ScrollViewer>
+        <showcase:CodePanel x:Name="CodeText" />
+    </StackPanel>
 </showcase:ShowcasePage>

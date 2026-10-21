@@ -1,4 +1,5 @@
-using System.Runtime.CompilerServices;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using Avalonia.Media;
 
 namespace MonacoLabs.Presto;
@@ -8,12 +9,29 @@ namespace MonacoLabs.Presto;
 /// four channel weights and an offset. Offsets are in normalized 0..1 units, which is what Skia applies (verified by
 /// drawing; SkiaSharp's doc remark about 0..255 is stale). The CSS factories follow Filter Effects Level 1 §13.
 /// </summary>
-[InlineArray(20)]
+/// <remarks>
+/// Twenty plain fields rather than an <c>[InlineArray]</c>: Mono on Android drew an inline-array matrix as if it were all
+/// zeros, which hid every filtered image.
+/// </remarks>
+[StructLayout(LayoutKind.Sequential)]
 internal struct ColorMatrix
 {
     private const float LumaR = 0.2126f, LumaG = 0.7152f, LumaB = 0.0722f;
+    private const int Length = 20;
 
-    private float _element0;
+    private float _e0, _e1, _e2, _e3, _e4, _e5, _e6, _e7, _e8, _e9, _e10, _e11, _e12, _e13, _e14, _e15, _e16, _e17, _e18, _e19;
+
+    public float this[int index]
+    {
+        readonly get => AsSpan()[index];
+        set => AsWritableSpan()[index] = value;
+    }
+
+    [UnscopedRef]
+    public readonly ReadOnlySpan<float> AsSpan() => MemoryMarshal.CreateReadOnlySpan(in _e0, Length);
+
+    [UnscopedRef]
+    private Span<float> AsWritableSpan() => MemoryMarshal.CreateSpan(ref _e0, Length);
 
     public static ColorMatrix Identity => Rows([1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0]);
 
@@ -22,7 +40,7 @@ internal struct ColorMatrix
         get
         {
             var identity = Identity;
-            for (var i = 0; i < 20; i++)
+            for (var i = 0; i < Length; i++)
                 if (Math.Abs(this[i] - identity[i]) > 1e-6f) return false;
             return true;
         }
@@ -123,7 +141,7 @@ internal struct ColorMatrix
     private static ColorMatrix Rows(ReadOnlySpan<float> values)
     {
         var matrix = default(ColorMatrix);
-        values.CopyTo(matrix);
+        values.CopyTo(matrix.AsWritableSpan());
         return matrix;
     }
 
@@ -131,7 +149,7 @@ internal struct ColorMatrix
     {
         var t = (float)Math.Clamp(amount, 0, 1);
         var result = Identity;
-        for (var i = 0; i < 20; i++) result[i] += (full[i] - result[i]) * t;
+        for (var i = 0; i < Length; i++) result[i] += (full[i] - result[i]) * t;
         return result;
     }
 }

@@ -11,7 +11,7 @@ public sealed class ColorMatrixTests
             Assert.True(Math.Abs(expected[i] - actual[i]) <= tolerance, $"element {i}: expected {expected[i]}, got {actual[i]}");
     }
 
-    private static void AssertMatrix(ColorMatrix expected, ColorMatrix actual) => AssertMatrix((ReadOnlySpan<float>)expected, actual);
+    private static void AssertMatrix(ColorMatrix expected, ColorMatrix actual) => AssertMatrix(expected.AsSpan(), actual);
 
     private static (float R, float G, float B, float A) Apply(ColorMatrix m, float r, float g, float b, float a = 1)
     {

@@ -195,6 +195,12 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
   - Tests: `ScrollObserverTests.RepeatFalseRevertsTheObserverAfterCompletion`, `ScrollObserverTests.RevertingTheLinkedAnimationRevertsTheObserver`
 - **BRIDGE-SCROLLOBSERVER-061** — The scroller-to-container registry shall not keep a scroller alive: a scroller that leaves the tree with unreverted observers shall be collectable with its container and observers.
   - Tests: `ScrollObserverTests.AScrollerDroppedWithAnUnrevertedObserverIsCollectable`
+- **BRIDGE-SCROLLOBSERVER-062** — When its resolved target detaches from the visual tree, the observer shall leave its container, release its pin and spacer, cancel its snap, set `Ready` false and clear `Container`, run no callbacks and leave the linked object as it is.
+  - Tests: `ScrollObserverTests.ADetachedTargetsObserverIsNotEvaluatedAndReleasesTheScroller`, `ScrollObserverTests.ReattachingResumesAndReportsTheCrossingTheNewPositionImpliesWithNoCallbackAtTheDetach`, `ScrollPinTests.DetachingRestoresTheTransformAndMarginAndReturningPinsAgain`, `ScrollSnapTests.DetachingTheTargetMidSnapStopsIt`
+- **BRIDGE-SCROLLOBSERVER-063** — When a suspended observer's target is loaded again, it shall resolve as on creation, joining `Container` or its current `ScrollViewer`, measure and evaluate; once reverted, a later load shall do nothing.
+  - Tests: `ScrollObserverTests.ReattachingResumesAndReportsTheCrossingTheNewPositionImpliesWithNoCallbackAtTheDetach`, `ScrollObserverTests.ReattachingUnderAnotherScrollViewerWatchesTheNewOne`, `ScrollPinTests.DetachingRestoresTheTransformAndMarginAndReturningPinsAgain`, `ScrollObserverTests.RevertWhileSuspendedEndsTheObserverAndALaterLoadDoesNothing`
+- **BRIDGE-SCROLLOBSERVER-064** — A target detached for good shall be collectable with its suspended observer and its linked object.
+  - Tests: `ScrollObserverTests.ATargetDetachedForGoodIsCollectedWithItsObserverAndLinkedAnimation`
 
 ### Defaults
 
@@ -217,13 +223,14 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 - An observer can revert itself from inside a callback; the container's loop re-reads its list, so no observer is skipped or run twice.
 - Thresholds that cross give `Distance` 0, so `Progress` is 0 and no snap runs.
 - Linking a `Timeline` that has no children yet throws from `Link` (008), since its first control is read then.
+- A suspended target loaded again outside any `ScrollViewer`, with no `Container` set, throws from its `Loaded` (008, 063).
 - `Sync = 0d` reports `Sync` true but seeks nothing.
 - A sync string that is neither a method name nor an ease (for example `"none"`) is a method sync that does nothing.
 
 ## Threading and lifetime
 
 - UI thread only. Resolution, evaluation and snapping run on the engine tick; pin updates run in the scroller's `Offset` property-changed notification.
-- The container keeps its observers alive through the scroller's event handlers until they revert, but only while something else holds the scroller: the registry holds it weakly (061). A linked object's revert reverts the observer; the observer never reverts the linked object.
+- The container keeps its observers alive through the scroller's event handlers while their targets are attached and until they revert, and only while something else holds the scroller: the registry holds it weakly (061). A suspended observer is held only by its target's handlers, its linked object and its scope (064). A linked object's revert reverts the observer; the observer never reverts the linked object.
 
 ## Reduced motion
 
@@ -256,7 +263,10 @@ Initially ported from anime.js `onScroll`: a `ScrollObserver` watches a control 
 - **Scroll velocity needs no API of its own.** It is `PrestoAvalonia.ScrollValue(scroller).VelocityOf()`. Reason: the motion value graph already provides it.
 - **One `ScrollWriter` tells own writes, clamps and foreign writes apart.** See BRIDGE-SCROLL.
 - **The core owns the cell, the bridge owns the sources.** See CORE-MOTIONVALUE.
-- **The container registry is weak.** Scroller to container is a `ConditionalWeakTable`, like the bridge's other per-visual tables. Reason: an observer has no detach handling and leaves only on `Revert`, so one unreverted observer created outside a scope rooted its scroller and the tree under it for the life of the process. Rejected: reverting observers on detach, which needs a behavior decision of its own.
+- **The container registry is weak.** Scroller to container is a `ConditionalWeakTable`, like the bridge's other per-visual tables. Reason: an observer used to leave only on `Revert`, so one unreverted observer created outside a scope rooted its scroller and the tree under it for the life of the process. A detached target now also suspends its observer (see "A detached observer suspends rather than reverts").
+- **A detached observer suspends rather than reverts.** On its target's detach it leaves its container, lifts its pin and spacer, cancels its snap and clears `Ready` and `Container`. Reason: detaches are often brief (a reparent, a page host swapping views), and BRIDGE-HELPERS already chose pause-and-resume over revert for animations for this reason; suspending also stops the per-frame cost and lets go of the scroller. Rejected: reverting on detach (irreversible on a brief detach, and it would break the link); keeping the observer in its container with an early return in `HandleScroll` (the container and scroller stay held, and a reparent into another scroller would watch the wrong one).
+- **Suspending runs no callbacks; resuming re-evaluates.** Reason: a detach is not a scroll, so an `OnLeave` there would misreport what the user did; on return the observer evaluates against the new position, so a crossing that really happened is reported once. Rejected: firing `OnLeave` on detach.
+- **The observer resumes on `Loaded`, not `AttachedToVisualTree`.** Reason: measuring needs layout, and first resolution already waits for `Loaded` (007) for the same reason. Rejected: resuming on `AttachedToVisualTree`, before the target has bounds.
 
 ## Non-goals
 

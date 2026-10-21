@@ -5,6 +5,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Threading;
 using MonacoLabs.Presto.Events;
 
@@ -15,6 +16,7 @@ public sealed class ScrollSmoothTests : BridgeTestBase
 {
     private const double Ease = 300;
     private static readonly Point Inside = new(100, 100);
+    private static readonly Point OverInner = new(100, 50);
 
     private static ScrollStage Show(double trail = 600)
     {
@@ -165,6 +167,27 @@ public sealed class ScrollSmoothTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void AControlOrCommandNotchIsLeftForZoomableContent()
+    {
+        var stage = Show();
+        var (window, scroller, _, _) = stage;
+        stage.Panel.Background = Brushes.Transparent;
+        var zooms = 0;
+        stage.Panel.PointerWheelChanged += (_, e) =>
+        {
+            zooms++;
+            e.Handled = true;
+        };
+
+        window.MouseWheel(Inside, new Vector(0, -1), RawInputModifiers.Control);
+        window.MouseWheel(Inside, new Vector(0, -1), RawInputModifiers.Meta);
+        Frames.Advance(Ease + 100, 16);
+
+        Assert.Equal(2, zooms);
+        Assert.Equal(0, scroller.Offset.Y);
+    }
+
+    [AvaloniaFact]
     public void TurningSmoothOffRestoresNativeNotches()
     {
         var (window, scroller, _, _) = Show();
@@ -197,6 +220,108 @@ public sealed class ScrollSmoothTests : BridgeTestBase
 
         Frames.Advance(Ease + 100, 16);
         Assert.Equal(new Vector(50, 0), scroller.Offset);
+    }
+
+    private static (Window Window, ScrollViewer Outer) ShowAround(ScrollViewer inner)
+    {
+        inner.Width = 200;
+        inner.Height = 100;
+        inner.HorizontalAlignment = HorizontalAlignment.Left;
+        var outer = new ScrollViewer
+        {
+            Width = 200,
+            Height = 200,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Content = new StackPanel { Width = 1000, Children = { inner, new Border { Height = 900 } } },
+        };
+        var window = new Window { Content = outer, Width = 300, Height = 300 };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Scroll.SetSmooth(outer, true);
+        return (window, outer);
+    }
+
+    private static ScrollViewer VerticalInner() => new() { Content = new Border { Height = 1000, Background = Brushes.Transparent } };
+
+    private static ScrollViewer HorizontalInner() => new()
+    {
+        HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+        VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+        Content = new Border { Width = 1000, Background = Brushes.Transparent },
+    };
+
+    [AvaloniaFact]
+    public void ANotchOverAnInnerScrollerThatCanMoveScrollsItAndLeavesTheOuterAlone()
+    {
+        var inner = VerticalInner();
+        var (window, outer) = ShowAround(inner);
+
+        window.MouseWheel(OverInner, new Vector(0, -1));
+        Frames.Advance(Ease + 100, 16);
+
+        Assert.Equal(50, inner.Offset.Y);
+        Assert.Equal(default, outer.Offset);
+    }
+
+    [AvaloniaFact]
+    public void AtTheInnerScrollersEndTheNextNotchIsSmoothedByTheOuter()
+    {
+        var inner = VerticalInner();
+        var (window, outer) = ShowAround(inner);
+        inner.Offset = new Vector(0, 900);
+        Dispatcher.UIThread.RunJobs();
+
+        window.MouseWheel(OverInner, new Vector(0, -1));
+        Assert.Equal(0, outer.Offset.Y);
+
+        Frames.Advance(Ease + 100, 16);
+        Assert.Equal(50, outer.Offset.Y);
+        Assert.Equal(900, inner.Offset.Y);
+    }
+
+    [AvaloniaFact]
+    public void AShiftNotchOverAHorizontallyScrollableInnerScrollerIsYielded()
+    {
+        var inner = HorizontalInner();
+        var (window, outer) = ShowAround(inner);
+
+        window.MouseWheel(OverInner, new Vector(0, -1), RawInputModifiers.Shift);
+        Frames.Advance(Ease + 100, 16);
+
+        Assert.Equal(50, inner.Offset.X);
+        Assert.Equal(default, outer.Offset);
+    }
+
+    [AvaloniaFact]
+    public void AVerticalNotchOverAHorizontalOnlyInnerScrollerIsSmoothedByTheOuter()
+    {
+        var inner = HorizontalInner();
+        var (window, outer) = ShowAround(inner);
+
+        window.MouseWheel(OverInner, new Vector(0, -1));
+        Assert.Equal(0, outer.Offset.Y);
+
+        Frames.Advance(Ease + 100, 16);
+        Assert.Equal(new Vector(0, 50), outer.Offset);
+        Assert.Equal(default, inner.Offset);
+    }
+
+    [AvaloniaFact]
+    public void AnInnerScrollerWithoutScrollChainingKeepsTheNotchAtItsEnd()
+    {
+        var inner = VerticalInner();
+        inner.IsScrollChainingEnabled = false;
+        var (window, outer) = ShowAround(inner);
+        inner.Offset = new Vector(0, 900);
+        Dispatcher.UIThread.RunJobs();
+
+        window.MouseWheel(OverInner, new Vector(0, -1));
+        Frames.Advance(Ease + 100, 16);
+
+        Assert.Equal(900, inner.Offset.Y);
+        Assert.Equal(default, outer.Offset);
     }
 
     [AvaloniaFact]

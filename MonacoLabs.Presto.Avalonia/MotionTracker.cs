@@ -42,6 +42,7 @@ internal sealed class MotionTracker
     private TopLevel? _watched;
     private readonly Action _follow;
     private Engine? _engine;
+    private bool _holdsLoop;
 
     public MotionTracker(Control control)
     {
@@ -188,23 +189,29 @@ internal sealed class MotionTracker
     {
         var condition = MotionCondition.Parse(state.When);
         state.Validate();
-        return new Entry(state, condition, Read(state), Engine.Current.Defaults.ReducedMotion);
+        var (properties, form) = Read(state);
+        var loop = Engine.Current.Defaults.Loop;
+        var parameters = state.Motion?.ToParams();
+        return new Entry(state, condition, properties, Engine.Current.Defaults.ReducedMotion)
+        {
+            Form = form,
+            Loops = parameters != null && ((parameters.Loop ?? loop).IsInfinite || parameters.WhenReduced is { } reduced && (reduced.Loop ?? loop).IsInfinite),
+        };
     }
 
-    private Dictionary<string, KeyValuePair<string, TweenValue>> Read(MotionState state)
+    private (Dictionary<string, KeyValuePair<string, TweenValue>> Properties, ReducedMotionFollowers.Form Form) Read(MotionState state)
     {
         var properties = new Dictionary<string, KeyValuePair<string, TweenValue>>();
-        if (state.Motion != null)
+        if (state.Motion == null) return (properties, default);
+        var parameters = state.Motion.Resolve();
+        foreach (var pair in Expand(parameters))
         {
-            foreach (var pair in Expand(state.Motion.Resolve()))
-            {
-                var property = Presto.Canonicalize(_control, pair.Key);
-                // Throws now, from the setter, for a property with no rest, rather than later from an input handler.
-                Rest(property);
-                properties[property] = pair;
-            }
+            var property = Presto.Canonicalize(_control, pair.Key);
+            // Throws now, from the setter, for a property with no rest, rather than later from an input handler.
+            Rest(property);
+            properties[property] = pair;
         }
-        return properties;
+        return (properties, ReducedMotionFollowers.Form.Of(parameters));
     }
 
     private void ReadTokens()
@@ -228,15 +235,18 @@ internal sealed class MotionTracker
     private void Resolve(Dictionary<string, Entry> winners, List<Entry>? reread = null)
     {
         var reduced = Engine.Current.Defaults.ReducedMotion;
+        _holdsLoop = false;
         foreach (var entry in _entries)
         {
             // Re-read here so toggling reduced motion takes effect at the next transition; a replay re-reads only what it replays.
-            if (entry.Reduced != reduced && (reread == null || reread.Contains(entry))) (entry.Properties, entry.Reduced) = (Read(entry.State), reduced);
+            if (entry.Reduced != reduced && (reread == null || reread.Contains(entry))) ((entry.Properties, entry.Form), entry.Reduced) = (Read(entry.State), reduced);
             entry.WasActive = entry.Active;
             entry.Active = entry.Condition.Matches(_control.Classes, _tokens, _pressed, _hovered);
             if (!entry.Active) continue;
+            _holdsLoop |= entry.Loops;
             foreach (var property in entry.Properties.Keys) winners[property] = entry;
         }
+        Follow(_holdsLoop || _drivers.Count > 0);
     }
 
     private void Evaluate()
@@ -353,7 +363,7 @@ internal sealed class MotionTracker
         return animation;
     }
 
-    // Registered only while a property is driven, so the engine never roots a resting tracker.
+    // Registered only while driven or holding a loop, so the engine never roots an idle tracker.
     private void Follow(bool follow)
     {
         if (follow == (_engine != null)) return;
@@ -392,7 +402,7 @@ internal sealed class MotionTracker
             _drivers.Remove(property);
             Presto.ResolveAccessor(_control, property).Revert(_control, null);
         }
-        if (_drivers.Count == 0) Follow(false);
+        if (_drivers.Count == 0 && !_holdsLoop) Follow(false);
     }
 
     private void Stop()
@@ -578,8 +588,11 @@ internal sealed class MotionTracker
         /// <summary>Whether <see cref="Properties"/> were read from the <see cref="AnimationBuilder.WhenReduced"/> form.</summary>
         public bool Reduced { get; set; } = reduced;
 
-        /// <summary>The form this state last played or arrived in, which a flag change compares against.</summary>
+        /// <summary>The form this state last read, played or arrived in, which a flag change compares against.</summary>
         public ReducedMotionFollowers.Form Form { get; set; }
+
+        /// <summary>Whether either form loops forever, so a held state follows a flag change even with nothing playing.</summary>
+        public bool Loops { get; init; }
 
         public bool Active { get; set; }
 

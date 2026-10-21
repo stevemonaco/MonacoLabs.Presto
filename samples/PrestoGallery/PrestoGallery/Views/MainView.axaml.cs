@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto;
+using PrestoGallery.Showcase;
 using PrestoGallery.ViewModels;
 
 namespace PrestoGallery.Views;
@@ -13,6 +14,7 @@ namespace PrestoGallery.Views;
 public partial class MainView : UserControl
 {
     private const double CompactBreakpoint = 720;
+    private const double ShortBreakpoint = 500;
 
     private readonly IPageTransition _fadeThrough = Recipes.PageFadeThrough();
     private readonly IPageTransition _push = Recipes.PagePush(Edge.Right);
@@ -25,6 +27,17 @@ public partial class MainView : UserControl
     public MainView()
     {
         InitializeComponent();
+        PageScroller.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == ScrollViewer.ViewportProperty) FitPage();
+        };
+        Header.SizeChanged += (_, _) => FitPage();
+        PageHost.PropertyChanged += (_, e) =>
+        {
+            if (e.Property != ContentControl.ContentProperty) return;
+            PageScroller.Offset = default;
+            FitPage();
+        };
     }
 
     // On the top level, so Ctrl+F and Ctrl+B work with nothing focused and before a page can handle them.
@@ -59,14 +72,14 @@ public partial class MainView : UserControl
     // Measured before the page host is templated, so the first page arrives as its initial content.
     protected override Size MeasureOverride(Size availableSize)
     {
-        ApplyLayout(availableSize.Width);
+        ApplyLayout(availableSize);
         return base.MeasureOverride(availableSize);
     }
 
-    private void ApplyLayout(double width)
+    private void ApplyLayout(Size available)
     {
-        if (_gallery == null || double.IsInfinity(width)) return;
-        var compact = width < CompactBreakpoint;
+        if (_gallery == null || double.IsInfinity(available.Width)) return;
+        var compact = available.Width < CompactBreakpoint || available.Height < ShortBreakpoint;
         if (compact == _compact) return;
         // A collapsed pane clips the nav through a negative margin, which Home must not keep.
         if (compact)
@@ -79,7 +92,7 @@ public partial class MainView : UserControl
         _gallery.IsCompact = compact;
         _compact = compact;
         Move(Navigation, compact ? Home : SidebarSlot);
-        Move(PageColumn, compact ? PageLevel : PageSlot);
+        Move(PageScroller, compact ? PageLevel : PageSlot);
         Navigation.Classes.Set("compact", compact);
         PageColumn.Classes.Set("compact", compact);
         Shell.IsVisible = !compact;
@@ -88,6 +101,19 @@ public partial class MainView : UserControl
         PageLevel.IsVisible = !_gallery.AtHome;
         ExpandPane.IsVisible = !compact && Pane.IsCollapsed(SidebarColumn);
         UpdatePageTransition();
+        FitPage();
+    }
+
+    // A page that fills the viewport fits under the header when wide; in compact the header scrolls away above it.
+    private void FitPage()
+    {
+        var margin = PageColumn.Margin;
+        var below = PageScroller.Viewport.Height - margin.Top - margin.Bottom;
+        if (below <= 0) return;
+        var rest = Math.Max(0, below - Header.Bounds.Height - Header.Margin.Bottom);
+        var fills = PageHost.Content is ShowcasePage { FillsViewport: true };
+        PageHost.Height = !fills ? double.NaN : _compact == true ? below : rest;
+        PageHost.MinHeight = fills ? 0 : rest;
     }
 
     private static void Move(Control child, Decorator to)

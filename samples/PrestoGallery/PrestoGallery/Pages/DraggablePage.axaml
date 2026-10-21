@@ -20,77 +20,83 @@
         </Style>
     </showcase:ShowcasePage.Styles>
 
-    <ScrollViewer>
-        <StackPanel Spacing="12">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Classes="caption" Text="Release" VerticalAlignment="Center" />
-                <ComboBox x:Name="ReleaseBox" Width="130" SelectedIndex="0" SelectionChanged="ReleaseChanged">
-                    <ComboBoxItem>Projection</ComboBoxItem>
-                    <ComboBoxItem>Inertia</ComboBoxItem>
-                </ComboBox>
-            </StackPanel>
+    <StackPanel Spacing="12">
+        <WrapPanel ItemSpacing="8" LineSpacing="6">
+            <TextBlock Classes="caption" Text="Release" VerticalAlignment="Center" />
+            <ComboBox x:Name="ReleaseBox" Width="130" SelectedIndex="0" SelectionChanged="ReleaseChanged">
+                <ComboBoxItem>Projection</ComboBoxItem>
+                <ComboBoxItem>Inertia</ComboBoxItem>
+            </ComboBox>
+        </WrapPanel>
 
-            <showcase:CodePanel x:Name="SpringCode" />
+        <showcase:CodePanel x:Name="SpringCode" />
 
-            <Border Classes="stage" Padding="0" Height="300">
-                <Canvas x:Name="Stage">
-                    <Border x:Name="SpringCard" Classes="card" Canvas.Left="20" Canvas.Top="20" Background="#4c8dff">
-                        <StackPanel Spacing="2">
-                            <TextBlock Text="Spring" FontWeight="SemiBold" />
-                            <TextBlock Text="Flick me at an edge" FontSize="11" />
-                            <CheckBox x:Name="SpringCheck" Content="Done" />
-                        </StackPanel>
-                    </Border>
+        <Border Classes="stage" Padding="0" Height="300">
+            <Canvas x:Name="Stage">
+                <Border x:Name="SpringCard" Classes="card" Canvas.Left="20" Canvas.Top="20" Background="#4c8dff">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="Spring" FontWeight="SemiBold" />
+                        <TextBlock Text="Flick me at an edge" FontSize="11" />
+                        <CheckBox x:Name="SpringCheck" Content="Done" />
+                    </StackPanel>
+                </Border>
 
-                    <Border x:Name="SnapCard" Classes="card" Canvas.Left="190" Canvas.Top="20" Background="#f5c542">
-                        <StackPanel Spacing="2">
-                            <TextBlock Text="Snap 40" FontWeight="SemiBold" />
-                            <TextBlock Text="Steps on a 40 grid" FontSize="11" />
-                            <CheckBox Content="Pinned" />
-                        </StackPanel>
-                    </Border>
+                <Border x:Name="SnapCard" Classes="card" Canvas.Left="190" Canvas.Top="20" Background="#f5c542">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="Snap 40" FontWeight="SemiBold" />
+                        <TextBlock Text="Steps on a 40 grid" FontSize="11" />
+                        <CheckBox Content="Pinned" />
+                    </StackPanel>
+                </Border>
 
-                    <Border x:Name="Rail" Width="260" Height="44" CornerRadius="8" Background="#304c8dff"
-                            Canvas.Left="20" Canvas.Top="180">
-                        <DockPanel>
-                            <Border x:Name="Handle" DockPanel.Dock="Left" Width="30" Background="#804c8dff"
-                                    CornerRadius="8,0,0,8" />
-                            <TextBlock Text="x only, drag the handle" VerticalAlignment="Center" Margin="10,0,0,0" />
-                        </DockPanel>
-                    </Border>
-                </Canvas>
-            </Border>
+                <Border x:Name="Rail" Width="260" Height="44" CornerRadius="8" Background="#304c8dff"
+                        Canvas.Left="20" Canvas.Top="180">
+                    <DockPanel>
+                        <Border x:Name="Handle" DockPanel.Dock="Left" Width="30" Background="#804c8dff"
+                                CornerRadius="8,0,0,8" />
+                        <TextBlock Text="x only, drag the handle" VerticalAlignment="Center" Margin="10,0,0,0" />
+                    </DockPanel>
+                </Border>
+            </Canvas>
+        </Border>
 
-            <Grid ColumnDefinitions="Auto,70,Auto,70,Auto,70,Auto,70" ColumnSpacing="8">
-                <TextBlock Grid.Column="0" Classes="mono" Text="X" />
-                <TextBlock Grid.Column="1" x:Name="XText" Classes="readout small" />
-                <TextBlock Grid.Column="2" Classes="mono" Text="Y" />
-                <TextBlock Grid.Column="3" x:Name="YText" Classes="readout small" />
-                <TextBlock Grid.Column="4" Classes="mono" Text="ProgressX" />
-                <TextBlock Grid.Column="5" x:Name="ProgressXText" Classes="readout small" />
-                <TextBlock Grid.Column="6" Classes="mono" Text="ProgressY" />
-                <TextBlock Grid.Column="7" x:Name="ProgressYText" Classes="readout small" />
-            </Grid>
+        <WrapPanel ItemSpacing="16" LineSpacing="4">
+            <WrapPanel ItemSpacing="8" LineSpacing="6">
+                <TextBlock Classes="mono" Text="X" />
+                <TextBlock Width="70" x:Name="XText" Classes="readout small" />
+            </WrapPanel>
+            <WrapPanel ItemSpacing="8" LineSpacing="6">
+                <TextBlock Classes="mono" Text="Y" />
+                <TextBlock Width="70" x:Name="YText" Classes="readout small" />
+            </WrapPanel>
+            <WrapPanel ItemSpacing="8" LineSpacing="6">
+                <TextBlock Classes="mono" Text="ProgressX" />
+                <TextBlock Width="70" x:Name="ProgressXText" Classes="readout small" />
+            </WrapPanel>
+            <WrapPanel ItemSpacing="8" LineSpacing="6">
+                <TextBlock Classes="mono" Text="ProgressY" />
+                <TextBlock Width="70" x:Name="ProgressYText" Classes="readout small" />
+            </WrapPanel>
+        </WrapPanel>
 
-            <TextBlock x:Name="CountsText" Classes="mono" />
+        <TextBlock x:Name="CountsText" Classes="mono" />
 
-            <Border Background="#18808080" CornerRadius="6" Padding="10" Height="120">
-                <TextBlock x:Name="LogText" Classes="mono" VerticalAlignment="Top" />
-            </Border>
+        <Border Background="#18808080" CornerRadius="6" Padding="10" Height="120">
+            <TextBlock x:Name="LogText" Classes="mono" VerticalAlignment="Top" />
+        </Border>
 
-            <showcase:CodePanel x:Name="SnapCode" Header="Snap card" />
-            <showcase:CodePanel x:Name="RailCode" Header="Rail" />
+        <showcase:CodePanel x:Name="SnapCode" Header="Snap card" />
+        <showcase:CodePanel x:Name="RailCode" Header="Rail" />
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="The blue card is bounded by the stage and thrown on release by a soft spring, so flicking it at an edge lets it push past the bound and settle back on it — the readout and the log above follow that one. The Inertia release instead coasts it to rest on a 40 unit grid and bounces it off the stage edge. The yellow card snaps to a 40 unit grid, reporting every step it crosses through OnSnap. The rail only moves along x and is grabbed by its handle rather than by itself. All three take the grab and grabbing cursors and are created in a scope, so leaving the page reverts them." />
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="The blue card is bounded by the stage and thrown on release by a soft spring, so flicking it at an edge lets it push past the bound and settle back on it — the readout and the log above follow that one. The Inertia release instead coasts it to rest on a 40 unit grid and bounces it off the stage edge. The yellow card snaps to a 40 unit grid, reporting every step it crosses through OnSnap. The rail only moves along x and is grabbed by its handle rather than by itself. All three take the grab and grabbing cursors and are created in a scope, so leaving the page reverts them." />
 
-            <TextBlock Classes="caption" TextWrapping="Wrap"
-                       Text="A draggable follows one pointer. For two-finger pan, pinch-zoom and rotate, see Transformable on the Photo viewer showcase page." />
-            <StackPanel Orientation="Horizontal" Spacing="4">
-                <TextBlock Classes="caption" VerticalAlignment="Center" Text="How the release spring's bounce and settling are set, and a throw with the release velocity:" />
-                <HyperlinkButton x:DataType="vm:MainViewModel" Padding="0" FontSize="12" VerticalAlignment="Center"
-                                 Content="Springs" Command="{Binding OpenCommand}" CommandParameter="Springs" />
-            </StackPanel>
-        </StackPanel>
-    </ScrollViewer>
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="A draggable follows one pointer. For two-finger pan, pinch-zoom and rotate, see Transformable on the Photo viewer showcase page." />
+        <WrapPanel ItemSpacing="4" LineSpacing="6">
+            <TextBlock Classes="caption" VerticalAlignment="Center" Text="How the release spring's bounce and settling are set, and a throw with the release velocity:" />
+            <HyperlinkButton x:DataType="vm:MainViewModel" Padding="0" FontSize="12" VerticalAlignment="Center"
+                             Content="Springs" Command="{Binding OpenCommand}" CommandParameter="Springs" />
+        </WrapPanel>
+    </StackPanel>
 </showcase:ShowcasePage>

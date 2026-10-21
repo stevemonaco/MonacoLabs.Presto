@@ -6,63 +6,61 @@
                        xmlns:showcase="clr-namespace:PrestoGallery.Showcase"
                        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="900"
                        x:Class="PrestoGallery.Pages.ParticlesPage">
-    <ScrollViewer>
-        <StackPanel Spacing="12">
-            <Grid ColumnDefinitions="*,260" ColumnSpacing="16">
-                <Border x:Name="Stage" MinHeight="460" CornerRadius="10" ClipToBounds="True" BorderThickness="1"
-                        Background="{x:Static showcase:Palette.Background}" BorderBrush="{x:Static showcase:Palette.Border}"
-                        PointerPressed="StagePressed" PointerMoved="StageMoved" PointerReleased="StageReleased">
-                    <Panel>
-                        <presto:CompositorCanvas x:Name="Particles" />
-                        <TextBlock x:Name="LiveCount" Classes="caption" Text="0 live" Margin="12,8" IsHitTestVisible="False" />
-                    </Panel>
-                </Border>
+    <StackPanel Spacing="12">
+        <Grid ColumnDefinitions="*,260" ColumnSpacing="16">
+            <Border x:Name="Stage" MinHeight="460" CornerRadius="10" ClipToBounds="True" BorderThickness="1"
+                    Background="{x:Static showcase:Palette.Background}" BorderBrush="{x:Static showcase:Palette.Border}"
+                    PointerPressed="StagePressed" PointerMoved="StageMoved" PointerReleased="StageReleased">
+                <Panel>
+                    <presto:CompositorCanvas x:Name="Particles" />
+                    <TextBlock x:Name="LiveCount" Classes="caption" Text="0 live" Margin="12,8" IsHitTestVisible="False" />
+                </Panel>
+            </Border>
 
-                <StackPanel Grid.Column="1" Spacing="2">
-                    <TextBlock Classes="caption" Text="{Binding #RateSlider.Value, StringFormat='Rate {0:0} /s'}" />
-                    <Slider x:Name="RateSlider" Minimum="0" Maximum="400" TickFrequency="10" IsSnapToTickEnabled="True" Value="0" ValueChanged="SettingsChanged" />
-                    <TextBlock Classes="caption" Text="{Binding #BurstSlider.Value, StringFormat='Burst {0:0}'}" />
-                    <Slider x:Name="BurstSlider" Minimum="0" Maximum="300" TickFrequency="5" IsSnapToTickEnabled="True" Value="60" ValueChanged="SettingsChanged" />
-                    <TextBlock Classes="caption" Text="{Binding #LifetimeSlider.Value, StringFormat='Lifetime up to {0:0} ms'}" />
-                    <Slider x:Name="LifetimeSlider" Minimum="200" Maximum="4000" TickFrequency="100" IsSnapToTickEnabled="True" Value="1400" ValueChanged="SettingsChanged" />
-                    <TextBlock Classes="caption" Text="{Binding #SpeedSlider.Value, StringFormat='Speed up to {0:0.00} /ms'}" />
-                    <Slider x:Name="SpeedSlider" Minimum="0.05" Maximum="1.5" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="0.6" ValueChanged="SettingsChanged" />
-                    <TextBlock Classes="caption" Text="{Binding #SpreadSlider.Value, StringFormat='Spread ±{0:0}°'}" />
-                    <Slider x:Name="SpreadSlider" Minimum="0" Maximum="180" TickFrequency="5" IsSnapToTickEnabled="True" Value="45" ValueChanged="SettingsChanged" />
-                    <TextBlock Classes="caption" Text="{Binding #GravitySlider.Value, StringFormat='Gravity {0:0.0000} /ms²'}" />
-                    <Slider x:Name="GravitySlider" Minimum="0" Maximum="0.003" TickFrequency="0.0001" IsSnapToTickEnabled="True" Value="0.0008" ValueChanged="SettingsChanged" />
-                    <TextBlock Classes="caption" Text="{Binding #DragSlider.Value, StringFormat='Drag {0:0.0} /s'}" />
-                    <Slider x:Name="DragSlider" Minimum="0" Maximum="8" TickFrequency="0.5" IsSnapToTickEnabled="True" Value="1" ValueChanged="SettingsChanged" />
-                    <TextBlock Classes="caption" Text="{Binding #SpinSlider.Value, StringFormat='Spin ±{0:0.00}°/ms'}" />
-                    <Slider x:Name="SpinSlider" Minimum="0" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="0.3" ValueChanged="SettingsChanged" />
-                    <TextBlock Classes="caption" Text="{Binding #FlutterSlider.Value, StringFormat='Flutter {0:0.0} /s'}" />
-                    <Slider x:Name="FlutterSlider" Minimum="0" Maximum="8" TickFrequency="0.5" IsSnapToTickEnabled="True" Value="0" ValueChanged="SettingsChanged" />
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,6,0,0">
-                        <ComboBox x:Name="ShapeBox" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="SettingsChanged">
-                            <ComboBoxItem Content="Rect" />
-                            <ComboBoxItem Content="RoundedRect" />
-                            <ComboBoxItem Content="Circle" />
-                            <ComboBoxItem Content="Streak" />
-                            <ComboBoxItem Content="Glyph" />
-                            <ComboBoxItem Content="Bitmap" />
-                            <ComboBoxItem Content="FromGeometry" />
-                        </ComboBox>
-                        <ComboBox x:Name="PaletteBox" Grid.Column="1" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="SettingsChanged">
-                            <ComboBoxItem Content="Confetti" />
-                            <ComboBoxItem Content="Ember" />
-                            <ComboBoxItem Content="Ice" />
-                            <ComboBoxItem Content="Ink" />
-                        </ComboBox>
-                    </Grid>
-                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
-                        <Button Classes="accent" Content="Emit" Click="EmitClicked" />
-                        <Button Content="Stop" Click="StopClicked" />
-                        <Button Content="Clear" Click="ClearClicked" />
-                    </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="2">
+                <TextBlock Classes="caption" Text="{Binding #RateSlider.Value, StringFormat='Rate {0:0} /s'}" />
+                <Slider x:Name="RateSlider" Minimum="0" Maximum="400" TickFrequency="10" IsSnapToTickEnabled="True" Value="0" ValueChanged="SettingsChanged" />
+                <TextBlock Classes="caption" Text="{Binding #BurstSlider.Value, StringFormat='Burst {0:0}'}" />
+                <Slider x:Name="BurstSlider" Minimum="0" Maximum="300" TickFrequency="5" IsSnapToTickEnabled="True" Value="60" ValueChanged="SettingsChanged" />
+                <TextBlock Classes="caption" Text="{Binding #LifetimeSlider.Value, StringFormat='Lifetime up to {0:0} ms'}" />
+                <Slider x:Name="LifetimeSlider" Minimum="200" Maximum="4000" TickFrequency="100" IsSnapToTickEnabled="True" Value="1400" ValueChanged="SettingsChanged" />
+                <TextBlock Classes="caption" Text="{Binding #SpeedSlider.Value, StringFormat='Speed up to {0:0.00} /ms'}" />
+                <Slider x:Name="SpeedSlider" Minimum="0.05" Maximum="1.5" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="0.6" ValueChanged="SettingsChanged" />
+                <TextBlock Classes="caption" Text="{Binding #SpreadSlider.Value, StringFormat='Spread ±{0:0}°'}" />
+                <Slider x:Name="SpreadSlider" Minimum="0" Maximum="180" TickFrequency="5" IsSnapToTickEnabled="True" Value="45" ValueChanged="SettingsChanged" />
+                <TextBlock Classes="caption" Text="{Binding #GravitySlider.Value, StringFormat='Gravity {0:0.0000} /ms²'}" />
+                <Slider x:Name="GravitySlider" Minimum="0" Maximum="0.003" TickFrequency="0.0001" IsSnapToTickEnabled="True" Value="0.0008" ValueChanged="SettingsChanged" />
+                <TextBlock Classes="caption" Text="{Binding #DragSlider.Value, StringFormat='Drag {0:0.0} /s'}" />
+                <Slider x:Name="DragSlider" Minimum="0" Maximum="8" TickFrequency="0.5" IsSnapToTickEnabled="True" Value="1" ValueChanged="SettingsChanged" />
+                <TextBlock Classes="caption" Text="{Binding #SpinSlider.Value, StringFormat='Spin ±{0:0.00}°/ms'}" />
+                <Slider x:Name="SpinSlider" Minimum="0" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="0.3" ValueChanged="SettingsChanged" />
+                <TextBlock Classes="caption" Text="{Binding #FlutterSlider.Value, StringFormat='Flutter {0:0.0} /s'}" />
+                <Slider x:Name="FlutterSlider" Minimum="0" Maximum="8" TickFrequency="0.5" IsSnapToTickEnabled="True" Value="0" ValueChanged="SettingsChanged" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,6,0,0">
+                    <ComboBox x:Name="ShapeBox" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="SettingsChanged">
+                        <ComboBoxItem Content="Rect" />
+                        <ComboBoxItem Content="RoundedRect" />
+                        <ComboBoxItem Content="Circle" />
+                        <ComboBoxItem Content="Streak" />
+                        <ComboBoxItem Content="Glyph" />
+                        <ComboBoxItem Content="Bitmap" />
+                        <ComboBoxItem Content="FromGeometry" />
+                    </ComboBox>
+                    <ComboBox x:Name="PaletteBox" Grid.Column="1" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="SettingsChanged">
+                        <ComboBoxItem Content="Confetti" />
+                        <ComboBoxItem Content="Ember" />
+                        <ComboBoxItem Content="Ice" />
+                        <ComboBoxItem Content="Ink" />
+                    </ComboBox>
+                </Grid>
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                    <Button Classes="accent" Content="Emit" Click="EmitClicked" />
+                    <Button Content="Stop" Click="StopClicked" />
+                    <Button Content="Clear" Click="ClearClicked" />
                 </StackPanel>
-            </Grid>
+            </StackPanel>
+        </Grid>
 
-            <showcase:CodePanel x:Name="Code" />
-        </StackPanel>
-    </ScrollViewer>
+        <showcase:CodePanel x:Name="Code" />
+    </StackPanel>
 </showcase:ShowcasePage>

@@ -47,23 +47,24 @@
         </Border>
 
         <Border Classes="stage" Padding="14">
-            <Grid ColumnDefinitions="40,Auto" RowDefinitions="Auto,Auto,Auto"
-                  HorizontalAlignment="Center" VerticalAlignment="Center">
-                <TextBlock Grid.ColumnSpan="2" x:Name="Unit" Classes="caption" Margin="0,0,0,10" Text="k visits" />
-                <Canvas Grid.Row="1" x:Name="Ticks" />
-                <Canvas Grid.Row="1" Grid.Column="1" x:Name="Plot" Width="600" Height="280">
-                    <Canvas x:Name="Axes" IsHitTestVisible="False" />
-                    <Path x:Name="LineStroke" Stroke="{x:Static showcase:Palette.InkDim}" StrokeThickness="2.5"
-                          StrokeJoin="Round" StrokeLineCap="Round" IsHitTestVisible="False" />
-                    <Border x:Name="Tip" Width="200" Padding="8,4" CornerRadius="6" BorderThickness="1" Opacity="0"
-                            IsHitTestVisible="False" Background="{x:Static showcase:Palette.SurfaceHigh}"
-                            BorderBrush="{x:Static showcase:Palette.Border}">
-                        <TextBlock x:Name="TipText" FontSize="12" HorizontalAlignment="Center"
-                                   Foreground="{x:Static showcase:Palette.Ink}" />
-                    </Border>
-                </Canvas>
-                <Canvas Grid.Row="2" Grid.Column="1" x:Name="Categories" Height="24" />
-            </Grid>
+            <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid ColumnDefinitions="40,Auto" RowDefinitions="Auto,Auto,Auto">
+                    <TextBlock Grid.ColumnSpan="2" x:Name="Unit" Classes="caption" Margin="0,0,0,10" Text="k visits" />
+                    <Canvas Grid.Row="1" x:Name="Ticks" />
+                    <Canvas Grid.Row="1" Grid.Column="1" x:Name="Plot" Width="600" Height="280">
+                        <Canvas x:Name="Axes" IsHitTestVisible="False" />
+                        <Path x:Name="LineStroke" Stroke="{x:Static showcase:Palette.InkDim}" StrokeThickness="2.5"
+                              StrokeJoin="Round" StrokeLineCap="Round" IsHitTestVisible="False" />
+                        <Border x:Name="Tip" Width="200" Padding="8,4" CornerRadius="6" BorderThickness="1" Opacity="0"
+                                IsHitTestVisible="False" Background="{x:Static showcase:Palette.SurfaceHigh}"
+                                BorderBrush="{x:Static showcase:Palette.Border}">
+                            <TextBlock x:Name="TipText" FontSize="12" HorizontalAlignment="Center"
+                                       Foreground="{x:Static showcase:Palette.Ink}" />
+                        </Border>
+                    </Canvas>
+                    <Canvas Grid.Row="2" Grid.Column="1" x:Name="Categories" Height="24" />
+                </Grid>
+            </Viewbox>
         </Border>
     </DockPanel>
 </showcase:ShowcasePage>

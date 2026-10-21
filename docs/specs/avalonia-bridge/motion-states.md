@@ -72,7 +72,7 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 - **BRIDGE-MOTION-007** — When a style setter on a descendant selector sets `Motion.State` on an element, its states shall enter while the selector matches and leave when the setter's value goes.
   - Tests: `MotionStateTests.ADescendantSelectorSettingStateDrivesTheChild`
 - **BRIDGE-MOTION-066** — `StateTokens` shall provide a one-way `MultiBinding` whose value is the union of its bindings' tokens, joined by spaces, or `null` when there are none: a true `bool` contributes the last member name of its binding's path, read from a reflection binding's `Path` or a compiled binding's path text alike, a false `bool`, `null` or unset value contributes none, and any other value contributes its tokens as BRIDGE-MOTION-006 reads them.
-  - Tests: `MotionStateTokensTests.AnEnumAndATrueFlagHoldBothStatesAndTheFlagGoingFalseLeavesOnlyItsState`, `MotionPropagationTests.FollowersOfAStateTokensSourceStaggerAsFromAPlainValue`
+  - Tests: `MotionStateTokensTests.AnEnumAndATrueFlagHoldBothStatesAndTheFlagGoingFalseLeavesOnlyItsState`, `MotionStateTokensTests.AFlagAndAnEnumValueWithTheSameNameGiveOneToken`, `MotionPropagationTests.FollowersOfAStateTokensSourceStaggerAsFromAPlainValue`
 - **BRIDGE-MOTION-067** — When a `bool` binding of `StateTokens` has an empty path, its value shall contribute `True` or `False` as BRIDGE-MOTION-006 reads it.
   - Tests: `MotionStateTokensTests.ABoolBoundWithAnEmptyPathContributesTrue`
 - **BRIDGE-MOTION-068** — When any one binding of `StateTokens` changes, `Motion.State` shall change once, so the tracker plays one transition.
@@ -212,8 +212,8 @@ State motion for any `Control`: while a condition holds on an element (hover, pr
 
 ### Reduced motion and diagnostics
 
-- **BRIDGE-MOTION-056** — A state shall play its builder's `WhenReduced` form while `PrestoDefaults.ReducedMotion` is set, re-reading a state whose values were read under the other setting at its next transition, and, when the flags change while the state is held or playing and Following a change (BRIDGE-REDUCED) asks for a replay, playing the new form for the properties it holds from where they stand.
-  - Tests: `RecipeTests.TogglingReducedMotionTakesEffectAtTheNextTransition`, `RecipeTests.AnInteractionWorksAsAHoverStateAndReturnsToRest`, `StorefrontPageTests.WithReducedMotionOnAHoveredCardDoesNotMove`, `MotionStateTests.AHeldLoopingStateReplaysInItsNewFormWhenTheFlagFlips`, `MotionStateTests.AHeldFiniteStateKeepsItsValuesUntilLeft`
+- **BRIDGE-MOTION-056** — A state shall play its builder's `WhenReduced` form while `PrestoDefaults.ReducedMotion` is set, re-reading a state whose values were read under the other setting at its next transition, and, when the flags change while the state is held or playing and Following a change (BRIDGE-REDUCED) asks for a replay, playing the new form for the properties it holds from where they stand, including when the form it holds moves nothing.
+  - Tests: `RecipeTests.TogglingReducedMotionTakesEffectAtTheNextTransition`, `RecipeTests.AnInteractionWorksAsAHoverStateAndReturnsToRest`, `StorefrontPageTests.WithReducedMotionOnAHoveredCardDoesNotMove`, `MotionStateTests.AHeldLoopingStateReplaysInItsNewFormWhenTheFlagFlips`, `MotionStateTests.AHeldFiniteStateKeepsItsValuesUntilLeft`, `MotionStateTests.AHeldLoopWhoseReducedFormIsEmptyLoopsOnceTheFlagClears`
 - **BRIDGE-MOTION-057** — Under `ReduceAll`, every state animation, follower delays and staggers included, shall land at once.
   - Tests: `MotionOrchestrationTests.UnderReduceAllEveryChildLandsAtOnce`
 - **BRIDGE-MOTION-058** — State animations shall be created under the diagnostics origin `"Motion"`.

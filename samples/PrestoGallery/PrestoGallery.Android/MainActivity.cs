@@ -6,7 +6,7 @@ using Avalonia.Android;
 namespace PrestoGallery.Android;
 
 [Activity(
-    Label = "PrestoGallery.Android",
+    Label = "Presto Gallery",
     Theme = "@style/MyTheme.NoActionBar",
     Icon = "@drawable/icon",
     MainLauncher = true,

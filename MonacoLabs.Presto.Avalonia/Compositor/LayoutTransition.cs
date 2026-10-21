@@ -282,6 +282,8 @@ public sealed class LayoutTransition : IRevertible, IReleasable, ICompositorTrac
         }
         var first = _first;
         var last = window;
+        // A flight from an on-screen source covers a move no resize beside it eases.
+        var flight = _firstOnScreen;
         // Adding this control's own scroll offsets moves an on-screen source into its layout frame.
         if (_firstOnScreen && first is { } onScreen && Measure(_control, onScreen: true) is { } screenSlot) first = onScreen.Translate(window.Position - screenSlot.Position);
         // An ancestor easing its own move draws this control along with it, so only the move within that ancestor is left to ease.
@@ -294,7 +296,7 @@ public sealed class LayoutTransition : IRevertible, IReleasable, ICompositorTrac
         Record(window);
         // A virtualizing panel also repositions realized rows as it corrects estimated sizes during a scroll,
         // and a content size resize beside the control already eases its move, which a flight would trail behind.
-        if (List is { Scrolled: true, Pending: false } or { Anchoring: true } || ContentSizeTransition.ResizingBeside(_control))
+        if (List is { Scrolled: true, Pending: false } or { Anchoring: true } || (!flight && ContentSizeTransition.ResizingBeside(_control)))
         {
             Cancel();
             return;

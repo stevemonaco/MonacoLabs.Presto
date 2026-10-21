@@ -501,6 +501,125 @@ public sealed class ScrollObserverTests : BridgeTestBase
         return (window, new WeakReference(scroller));
     }
 
+    private static StackPanel Panel(ScrollViewer scroller) => (StackPanel)scroller.Content!;
+
+    private void Reattach(ScrollViewer scroller, Border target)
+    {
+        Panel(scroller).Children.Insert(1, target);
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(16);
+    }
+
+    [AvaloniaFact]
+    public void ADetachedTargetsObserverIsNotEvaluatedAndReleasesTheScroller()
+    {
+        var (_, scroller, target) = Show();
+        var updates = 0;
+        var observer = Observe(new ScrollObserverParams { Target = target, OnUpdate = _ => updates++ });
+        ScrollTo(scroller, 250);
+
+        Panel(scroller).Children.Remove(target);
+        Dispatcher.UIThread.RunJobs();
+        var seen = updates;
+        ScrollTo(scroller, 200);
+
+        Assert.Equal(seen, updates);
+        Assert.False(observer.Ready);
+        Assert.False(observer.Reverted);
+        Assert.Null(observer.Container);
+        Assert.False(ScrollContainer.Containers.TryGetValue(scroller, out _));
+    }
+
+    [AvaloniaFact]
+    public void ReattachingResumesAndReportsTheCrossingTheNewPositionImpliesWithNoCallbackAtTheDetach()
+    {
+        var (_, scroller, target) = Show();
+        var log = new List<string>();
+        var observer = Observe(new ScrollObserverParams
+        {
+            Target = target,
+            OnEnter = _ => log.Add("enter"),
+            OnLeave = _ => log.Add("leave"),
+        });
+        ScrollTo(scroller, 250);
+        Assert.Equal(["enter"], log);
+
+        Panel(scroller).Children.Remove(target);
+        Dispatcher.UIThread.RunJobs();
+        ScrollTo(scroller, 50);
+        Assert.Equal(["enter"], log);
+
+        target.Height = TargetSize * 2;
+        Reattach(scroller, target);
+
+        Assert.True(observer.Ready);
+        Assert.Same(scroller, observer.Container!.Scroller);
+        Assert.Equal(500d, observer.OffsetEnd);
+        Assert.Equal(["enter", "leave"], log);
+        Assert.False(observer.IsInView);
+    }
+
+    [AvaloniaFact]
+    public void ReattachingUnderAnotherScrollViewerWatchesTheNewOne()
+    {
+        var (_, scroller, target) = Show();
+        var (_, other, _) = Show();
+        var observer = Observe(new ScrollObserverParams { Target = target });
+
+        Panel(scroller).Children.Remove(target);
+        Dispatcher.UIThread.RunJobs();
+        Reattach(other, target);
+
+        Assert.True(observer.Ready);
+        Assert.Same(other, observer.Container!.Scroller);
+        Assert.False(ScrollContainer.Containers.TryGetValue(scroller, out _));
+    }
+
+    [AvaloniaFact]
+    public void RevertWhileSuspendedEndsTheObserverAndALaterLoadDoesNothing()
+    {
+        var (_, scroller, target) = Show();
+        var observer = Observe(new ScrollObserverParams { Target = target });
+        Panel(scroller).Children.Remove(target);
+        Dispatcher.UIThread.RunJobs();
+
+        observer.Revert();
+        Reattach(scroller, target);
+
+        Assert.True(observer.Reverted);
+        Assert.False(observer.Ready);
+        Assert.Null(observer.Container);
+        Assert.False(ScrollContainer.Containers.TryGetValue(scroller, out _));
+    }
+
+    [AvaloniaFact]
+    public void ATargetDetachedForGoodIsCollectedWithItsObserverAndLinkedAnimation()
+    {
+        var (window, scroller, refs) = ObserveAndDetachTarget();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.All(refs, reference => Assert.False(reference.IsAlive));
+        GC.KeepAlive(window);
+        GC.KeepAlive(scroller);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private (Window Window, ScrollViewer Scroller, WeakReference[] Refs) ObserveAndDetachTarget()
+    {
+        var (window, scroller, target) = Show();
+        var animation = target.Animate(new() { ["X"] = 100, Duration = 1000, Autoplay = false });
+        var observer = Observe(new ScrollObserverParams { Target = target, Snap = .25 }).Link(animation);
+        ScrollTo(scroller, 250);
+        Panel(scroller).Children.Remove(target);
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+        Frames.Advance(WakeWindow * 2, 16);
+        return (window, scroller, [new(target), new(observer), new(animation)]);
+    }
+
     /// <summary>The data timer pauses with the wake window, unlike upstream's, which is what lets the engine idle.</summary>
     [AvaloniaFact]
     public void TheEngineIdlesAfterTheWakeWindowAndWakesOnTheNextScroll()
