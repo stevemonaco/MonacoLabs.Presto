@@ -117,8 +117,8 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
   - Tests: `RecipeTests.AnEntranceLandsOnTheElementsRestingValues`
 - **BRIDGE-RECIPES-014** — `SlideIn(edge)` shall start the edge's shorthand at its offset towards `edge` (BRIDGE-RECIPES-009), `distance` defaulting to four times `Tokens.Distance`.
   - Tests: `RecipeTests.AnEntranceLandsOnTheElementsRestingValues`
-- **BRIDGE-RECIPES-015** — `FlipIn` shall start `RotateX` at `angle` degrees and set `Perspective` 800 as a to-value.
-  - Tests: `RecipeTests.AnEntranceLandsOnTheElementsRestingValues`
+- **BRIDGE-RECIPES-015** — `FlipIn` shall start `RotateX` at `angle` degrees and hold `Perspective` at 800 from its first frame.
+  - Tests: `RecipeTests.AnEntranceLandsOnTheElementsRestingValues`, `RecipeTests.FlipInAndFlipOutHoldFullPerspectiveFromTheFirstFrame`
 - **BRIDGE-RECIPES-016** — `Develop` shall start a `PrestoImageBase` at `Sepia` 0.8, `Brightness` 1.6 and `Blur` `Tokens.BlurRadius`, and settle on its resting values.
   - Tests: `RecipeTests.DevelopSettlesFromSepiaBrightnessAndBlurOntoTheImagesRestingValues`
 - **BRIDGE-RECIPES-017** — While `ReducedMotion` is set, an entrance shall become `Opacity` from 0 over `Tokens.Short`, keeping its delay or stagger.
@@ -126,10 +126,10 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 
 ### Exits
 
-- **BRIDGE-RECIPES-018** — Each exit shall use to-values only, ending at `Opacity` 0, over `Tokens.Short` with `Tokens.Ease` (`PopOut`, `FlipOut`: `Tokens.EmphasizedEase`; `Scatter` and `Fall`: BRIDGE-RECIPES-070, BRIDGE-RECIPES-071).
+- **BRIDGE-RECIPES-018** — Each exit shall use to-values only (except `FlipOut`'s held `Perspective`), ending at `Opacity` 0, over `Tokens.Short` with `Tokens.Ease` (`PopOut`, `FlipOut`: `Tokens.EmphasizedEase`; `Scatter` and `Fall`: BRIDGE-RECIPES-070, BRIDGE-RECIPES-071).
   - Tests: `RecipeTests.AnExitEndsAtItsStatedValues`
-- **BRIDGE-RECIPES-019** — `FadeOutUp` shall end `Y` at `-distance`, `FadeOutDown` at `+distance`, `FadeOutLeft` `X` at `-distance`, `FadeOutRight` at `+distance`; `ScaleOut`/`PopOut` end `Scale` at `scale`; `BlurOut` ends `Blur` at `radius`; `SlideOut(edge)` ends at its offset towards `edge` (default four times `Distance`); `FlipOut` ends `RotateX` at `angle` (default -90) with `Perspective` 800. The defaults are those of the entrances.
-  - Tests: `RecipeTests.AnExitEndsAtItsStatedValues`
+- **BRIDGE-RECIPES-019** — `FadeOutUp` shall end `Y` at `-distance`, `FadeOutDown` at `+distance`, `FadeOutLeft` `X` at `-distance`, `FadeOutRight` at `+distance`; `ScaleOut`/`PopOut` end `Scale` at `scale`; `BlurOut` ends `Blur` at `radius`; `SlideOut(edge)` ends at its offset towards `edge` (default four times `Distance`); `FlipOut` ends `RotateX` at `angle` (default -90) with `Perspective` held at 800 from its first frame. The defaults are those of the entrances.
+  - Tests: `RecipeTests.AnExitEndsAtItsStatedValues`, `RecipeTests.FlipInAndFlipOutHoldFullPerspectiveFromTheFirstFrame`
 - **BRIDGE-RECIPES-020** — While `ReducedMotion` is set, an exit shall become `Opacity` to 0 over `Tokens.Short`.
   - Tests: `RecipeTests.EachReducedFormOnlyFades`
 
@@ -365,6 +365,7 @@ Named, parameterized motion: each recipe is a factory that returns a new `Animat
 
 ## Decisions
 
+- **`FlipIn` and `FlipOut` hold their perspective.** `Perspective` runs from 800 to 800 instead of to 800 from wherever it stands. Reason: on a control with no perspective yet the depth started at 0 (none) and passed through tiny depths, which magnified the control far past its bounds early in the move. Rejected: interpolating depth as its reciprocal for every `Perspective` tween, a wider behavior change.
 - **Outline morphs do not overshoot.** A morphing pair moves and reshapes on `Tokens.Ease`, while unpaired characters keep `Tokens.EmphasizedEase` for their scale. Reason: an overshooting ease (`OutBack` in the standard tokens) drives the outline past its target shape and back, which reads as a wobble in the letter rather than a bounce. Rejected: `Tokens.EmphasizedEase` for the morph.
 - **Recipes are factories that read the tokens at call time.** Each recipe call returns a new `AnimationBuilder` (a page recipe a new `PrestoPageTransition`) reading `Recipes.Tokens` when called; stateful recipes are methods returning the playing `Animation` or small bridge types. Reason: chaining `.Delay(…)` onto one call never touches another caller's copy, and replacing the tokens restyles later calls while builders already made keep their values. Rejected: shared static builders.
 - **The families live in `Prebuilt`, the facade in the root namespace.** The catalog is in the bridge, one class per family in `MonacoLabs.Presto.Prebuilt`; `Recipes` (a forwarding facade), `Edge` and the markup extensions are in the root namespace. Reason: nearly every recipe names a bridge shorthand; a `MonacoLabs.Presto.Recipes` namespace cannot sit beside the `Recipes` type (CS0101), and root placement lets one `using` cover `Recipes.SlideIn(Edge.Left)` and the existing `presto` XAML prefix cover the extensions. Rejected: the namespace `MonacoLabs.Presto.Recipes`.

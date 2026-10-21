@@ -26,6 +26,17 @@ public sealed class FlipTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void TheFirstTurnIsInFullPerspectiveFromItsFirstFrame()
+    {
+        var flip = Card();
+
+        flip.IsFlipped = true;
+        Frames.Advance(20, 20);
+
+        Assert.Equal(800, Convert.ToDouble(Presto.Get(flip.Front!.Parent!.Parent, "Perspective", withUnit: false)));
+    }
+
+    [AvaloniaFact]
     public void TogglingMidFlipTurnsBackFromWhereTheCardStands()
     {
         var flip = Card();

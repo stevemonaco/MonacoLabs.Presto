@@ -56,7 +56,8 @@ public static class Entrances
     /// <see cref="MotionTokens.EmphasizedEase"/>. UI thread only: the compositor has no 3D rotation.
     /// </summary>
     public static AnimationBuilder FlipIn(double angle = 90, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
-        Enter(duration, delay, ease ?? Recipes.Tokens.EmphasizedEase, stagger).RotateX(from: angle).Perspective(Recipes.FlipPerspective);
+        Enter(duration, delay, ease ?? Recipes.Tokens.EmphasizedEase, stagger).RotateX(from: angle)
+            .Perspective(Recipes.FlipPerspective, from: Recipes.FlipPerspective);
 
     /// <summary>
     /// Gathers each element in from where <see cref="Exits.Scatter"/> with the same arguments sends it: a random <c>X</c>/<c>Y</c>

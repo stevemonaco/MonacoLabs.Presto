@@ -51,6 +51,8 @@ public sealed class Flip : Control
         _card = new Panel { Children = { _front, _back } };
         VisualChildren.Add(_card);
         LogicalChildren.Add(_card);
+        // A depth tweened up from 0 (none) passes through tiny depths that magnify the card.
+        Presto.Set(_card, new AnimationParams { ["Perspective"] = Recipes.FlipPerspective });
     }
 
     /// <inheritdoc cref="FrontProperty"/>
@@ -114,14 +116,13 @@ public sealed class Flip : Control
         var angle = IsFlipped ? 180 : 0;
         if (VisualRoot == null || Engine.Current.Defaults.ReducedMotion)
         {
-            Presto.Set(_card, new AnimationParams { [Rotation] = angle, ["Perspective"] = Recipes.FlipPerspective });
+            Presto.Set(_card, new AnimationParams { [Rotation] = angle });
             ShowFacing();
             return;
         }
         var tokens = Recipes.Tokens;
         _turn = (Motion?.Clone() ?? Presto.Build().Duration(tokens.Long).Ease(tokens.Ease))
             .Property(Rotation, angle)
-            .Perspective(Recipes.FlipPerspective)
             .OnRender(_ => ShowFacing())
             .Animate(_card);
     }
@@ -131,7 +132,7 @@ public sealed class Flip : Control
         _back.RenderTransform = Orientation == Orientation.Horizontal ? new ScaleTransform(-1, 1) : new ScaleTransform(1, -1);
         if (!IsFlipped && _turn is not { Completed: false }) return;
         _turn?.Cancel();
-        Presto.Set(_card, new AnimationParams { [Axis(old)] = 0, [Rotation] = IsFlipped ? 180 : 0, ["Perspective"] = Recipes.FlipPerspective });
+        Presto.Set(_card, new AnimationParams { [Axis(old)] = 0, [Rotation] = IsFlipped ? 180 : 0 });
         ShowFacing();
     }
 

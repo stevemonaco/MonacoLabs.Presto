@@ -34,15 +34,15 @@ A control with two faces, `Front` and `Back`, that turns over in perspective to 
   - Tests: `FlipTests.TheFrontShowsBelow90DegreesAndTheBackAbove`
 - **BRIDGE-FLIP-002** (inherited) — When `Front` or `Back` changes, the new control shall replace the old one in its face's holder.
   - Tests: `FlipTests.ANewFaceReplacesTheOldOneInItsHolder`
-- **BRIDGE-FLIP-003** — A new card shall show its front, with its back hidden.
-  - Tests: `FlipTests.TheFrontShowsBelow90DegreesAndTheBackAbove`
+- **BRIDGE-FLIP-003** — A new card shall show its front, with its back hidden, and hold `Perspective` 800.
+  - Tests: `FlipTests.TheFrontShowsBelow90DegreesAndTheBackAbove`, `FlipTests.TheFirstTurnIsInFullPerspectiveFromItsFirstFrame`
 - **BRIDGE-FLIP-004** — The back face shall be mirrored by `ScaleTransform(-1, 1)` while `Orientation` is horizontal and `ScaleTransform(1, -1)` while vertical, so it reads the right way round once turned.
   - Tests: `FlipTests.TheBackReadsTheRightWayRoundOnceTurned`
 
 ### Turning
 
-- **BRIDGE-FLIP-005** — When `IsFlipped` changes, the card shall turn to 180° (flipped) or 0° (not flipped) through `RotateY` while `Orientation` is horizontal, or `RotateX` while vertical, with `Perspective` 800.
-  - Tests: `FlipTests.TheFrontShowsBelow90DegreesAndTheBackAbove`, `FlipTests.TheBackReadsTheRightWayRoundOnceTurned`
+- **BRIDGE-FLIP-005** — When `IsFlipped` changes, the card shall turn to 180° (flipped) or 0° (not flipped) through `RotateY` while `Orientation` is horizontal, or `RotateX` while vertical; the turn animates only the angle.
+  - Tests: `FlipTests.TheFrontShowsBelow90DegreesAndTheBackAbove`, `FlipTests.TheBackReadsTheRightWayRoundOnceTurned`, `FlipTests.TheFirstTurnIsInFullPerspectiveFromItsFirstFrame`
 - **BRIDGE-FLIP-006** — On every rendered frame of a turn, the front shall be visible while the card's angle is at most 90° in magnitude and the back while it is above.
   - Tests: `FlipTests.TheFrontShowsBelow90DegreesAndTheBackAbove`
 - **BRIDGE-FLIP-007** — While `Motion` is null, the turn shall last `Recipes.Tokens.Long` and ease with `Recipes.Tokens.Ease`, read at the toggle.
@@ -55,7 +55,7 @@ A control with two faces, `Front` and `Back`, that turns over in perspective to 
   - Tests: `FlipTests.TogglingMidFlipTurnsBackFromWhereTheCardStands`
 - **BRIDGE-FLIP-010** — When the control leaves the visual tree mid-turn, the turn shall complete at once, landing on its end angle and face.
   - Tests: `FlipTests.LeavingTheTreeMidTurnLandsTheTurn`
-- **BRIDGE-FLIP-011** — When `IsFlipped` changes while the control has no visual root, the card shall be set to its end angle and perspective and the faces shall swap at once.
+- **BRIDGE-FLIP-011** — When `IsFlipped` changes while the control has no visual root, the card shall be set to its end angle and the faces shall swap at once.
   - Tests: `FlipTests.ACardOutsideATreeTurnsAtOnce`
 - **BRIDGE-FLIP-012** — When `Orientation` changes while the card is flipped or turning, the turn shall be canceled, the old axis set to 0° and the new axis to the end angle (180° flipped, 0° not), with the face for that angle shown.
   - Tests: `FlipTests.ChangingTheOrientationWhileFlippedMovesTheTurnOntoTheNewAxis`
@@ -108,6 +108,7 @@ A control with two faces, `Front` and `Back`, that turns over in perspective to 
 
 - **Flip is an untemplated control.** `Flip` has `Front`, `Back` and `IsFlipped`; the card that turns 0↔180° (with `Recipes.FlipPerspective`, 800) and the mirror on the back face are its own children, and it is not templated. Reason: the card and the mirror belong to the control rather than to a panel the page owns, so neither a page's layout nor its `RenderTransform` is touched and a face never sees its rotation; the bridge ships no themes. Rejected: attached properties on a page's panel.
 - **`Motion` takes timing and ease only, validated where it is set.** It is read as `Selection.Motion` is, and a builder with properties, loops, callbacks or anything else throws `NotSupportedException` when assigned. Reason: the card decides the angles, and the whole-builder clone let loops, callbacks and extra properties ride along against the documented contract; throwing at the assignment points at the mistake.
+- **The card holds its perspective from creation.** The constructor sets `Perspective` 800 on the card and turns animate only the angle. Reason: a turn that also tweened `Perspective` started the first one from 0 (none), whose tiny early depths magnified the card past its bounds; later turns ran 800 to 800 and looked right. Rejected: a `from` value on each turn's perspective, which keeps an extra tween per turn for a value that never changes.
 - **An orientation change moves the turn onto the new axis at once.** While flipped or turning, the old axis is reset to 0° and the new one set to the end angle, with no turn. Reason: leaving 180° on the old axis made the next toggle turn on the new axis with the old rotation still applied; an orientation change is not a toggle, so it does not animate.
 
 ## Non-goals

@@ -296,6 +296,18 @@ public sealed class RecipeTests : CompositorTestBase
         Assert.Equal(90, Value(card, "RotateX"), 6);
     }
 
+    [AvaloniaTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void FlipInAndFlipOutHoldFullPerspectiveFromTheFirstFrame(bool entrance)
+    {
+        var card = new Border();
+
+        (entrance ? Recipes.FlipIn() : Recipes.FlipOut()).Autoplay(false).Animate(card).Seek(0);
+
+        Assert.Equal(800, Value(card, "Perspective"));
+    }
+
     [AvaloniaFact]
     public void ThemeRevealWithoutAnOverlayLayerThrowsBeforeRunningTheChange()
     {

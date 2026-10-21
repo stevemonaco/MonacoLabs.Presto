@@ -56,7 +56,8 @@ public static class Exits
     /// <see cref="MotionTokens.EmphasizedEase"/>. UI thread only: the compositor has no 3D rotation.
     /// </summary>
     public static AnimationBuilder FlipOut(double angle = -90, double? duration = null, double? delay = null, EaseValue? ease = null, bool stagger = false) =>
-        Exit(duration, delay, ease ?? Recipes.Tokens.EmphasizedEase, stagger).RotateX(angle).Perspective(Recipes.FlipPerspective);
+        Exit(duration, delay, ease ?? Recipes.Tokens.EmphasizedEase, stagger).RotateX(angle)
+            .Perspective(Recipes.FlipPerspective, from: Recipes.FlipPerspective);
 
     /// <summary>
     /// Flies each element to a random <c>X</c>/<c>Y</c> offset within <paramref name="distance"/> (default four times
