@@ -107,3 +107,14 @@ jobs:
         run: |
           $prerelease = @(if ($env:VERSION.Contains('-')) { '--prerelease' })
           gh release create $env:GITHUB_REF_NAME --title $env:GITHUB_REF_NAME --notes-file release-notes.md --verify-tag @prerelease
+
+  # A release made with github.token raises no `release` event, so the samples are called, not triggered.
+  samples:
+    needs: publish
+    uses: ./.github/workflows/samples.yml
+    with:
+      release-tag: ${{ github.ref_name }}
+    permissions:
+      contents: write
+      pages: write
+      id-token: write

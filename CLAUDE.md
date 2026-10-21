@@ -40,7 +40,7 @@ A head (gallery Desktop, Tempo.Desktop) publishes with NativeAOT through `-p:Pub
 
 The Desktop head takes launch options after `--`, e.g. `dotnet run --project samples/PrestoGallery/PrestoGallery.Desktop -- --page carousel --motion reduced --size 1400x1000`: `--page` takes a slug or title, `--motion` is `full|reduced|system`, `--frame-pacing on|off` sets `AvaloniaFrameSource.Paced` for A/B checks, and `--list-pages` prints the slugs. Its output shows under `dotnet run`, though it is a WinExe, so launched directly its output appears only when redirected; bad arguments exit with code 2. Use these to start DevTools checks on a page instead of navigating the sidebar.
 
-CI (`.github/workflows/ci.yml`, Windows) runs the `aot` job and `build-test-pack`, which builds by project name, runs the four suites and uploads the CI-versioned `.nupkg`/`.snupkg` files as each run's `packages` artifact; `release.yml` publishes to nuget.org on a `v*` tag once approved in the `nuget` environment.
+CI (`.github/workflows/ci.yml`, Windows) runs the `aot` job and `build-test-pack`, which builds by project name, runs the four suites and uploads the CI-versioned `.nupkg`/`.snupkg` files as each run's `packages` artifact; `release.yml` publishes to nuget.org on a `v*` tag once approved in the `nuget` environment, then calls `samples.yml` (also weekly and on demand), which publishes the NativeAOT Windows and WASM AOT browser samples, attaches the Windows zips to the release and deploys to GitHub Pages.
 
 Tests use xunit v3 on Microsoft.Testing.Platform (`UseMicrosoftTestingPlatformRunner`), which the .NET 10 SDK requires; test projects are `Exe` and can also be run directly.
 

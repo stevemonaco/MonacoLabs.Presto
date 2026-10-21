@@ -1,0 +1,111 @@
+name: Samples
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy-pages:
+        description: Deploy the browser builds to GitHub Pages
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      release-tag:
+        description: The GitHub release to attach the Windows builds to
+        type: string
+        required: true
+  schedule:
+    - cron: '0 5 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - { name: PrestoGallery, project: samples/PrestoGallery/PrestoGallery.Desktop }
+          - { name: Tempo, project: samples/Tempo/Tempo.Desktop }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
+      - name: Publish with NativeAOT
+        run: dotnet publish ${{ matrix.app.project }} -c Release -r win-x64 -p:PublishAot=true -o artifacts/${{ matrix.app.name }}
+      - name: Open every gallery page
+        if: matrix.app.name == 'PrestoGallery'
+        run: samples/PrestoGallery/aot-smoke.ps1 artifacts/PrestoGallery/PrestoGallery.Desktop.exe
+      - name: Zip
+        run: Get-ChildItem artifacts/${{ matrix.app.name }} -Exclude *.pdb | Compress-Archive -DestinationPath artifacts/${{ matrix.app.name }}-win-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app.name }}-win-x64
+          path: artifacts/${{ matrix.app.name }}-win-x64.zip
+
+  attach:
+    needs: windows
+    if: inputs.release-tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-win-x64'
+          merge-multiple: true
+          path: dist
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.release-tag }}
+        run: gh release upload "$TAG" dist/*.zip --clobber --repo "$GITHUB_REPOSITORY"
+
+  browser:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
+      - run: dotnet workload install wasm-tools
+      - name: Publish with WASM AOT
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet publish samples/PrestoGallery/PrestoGallery.Browser -c Release -p:RunAOTCompilation=true -o artifacts/browser/gallery
+          dotnet publish samples/Tempo/Tempo.Browser -c Release -p:RunAOTCompilation=true -o artifacts/browser/tempo
+      # The gallery is the site root; Tempo lives under /tempo/.
+      - name: Assemble the site
+        run: |
+          Copy-Item artifacts/browser/gallery/wwwroot site -Recurse
+          Copy-Item artifacts/browser/tempo/wwwroot site/tempo -Recurse
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  pages:
+    needs: browser
+    if: inputs.release-tag || inputs.deploy-pages
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

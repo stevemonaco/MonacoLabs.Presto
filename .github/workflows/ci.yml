@@ -1,7 +1,9 @@
 name: CI
 
 on:
+  # Branches only: release.yml runs CI itself for a v* tag.
   push:
+    branches: ['**']
   pull_request:
   workflow_call:
 
