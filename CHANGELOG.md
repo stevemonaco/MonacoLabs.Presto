@@ -6,7 +6,7 @@ All notable changes to the MonacoLabs.Presto packages are recorded here. The for
 
 ## [Unreleased]
 
-## [0.1.0-preview.1] - Unreleased
+## [0.1.0-preview.1] - 2026-10-22
 
 The first public preview. All four packages ship together at the same version and depend on each other exactly.
 
