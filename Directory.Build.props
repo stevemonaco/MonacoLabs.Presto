@@ -16,7 +16,7 @@
     <RepositoryUrl>https://github.com/stevemonaco/MonacoLabs.Presto</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <VersionPrefix>0.1.0</VersionPrefix>
-    <VersionSuffix>preview.1</VersionSuffix>
+    <VersionSuffix>preview.2</VersionSuffix>
     <VersionSuffix Condition="'$(PrestoCiBuild)' != '' and '$(VersionSuffix)' != ''">$(VersionSuffix).ci.$(PrestoCiBuild)</VersionSuffix>
     <VersionSuffix Condition="'$(PrestoCiBuild)' != '' and '$(VersionSuffix)' == ''">ci.$(PrestoCiBuild)</VersionSuffix>
     <PackageReleaseNotes>https://github.com/stevemonaco/MonacoLabs.Presto/blob/main/CHANGELOG.md</PackageReleaseNotes>
@@ -36,6 +36,7 @@
 
   <PropertyGroup Condition="'$(IsPackable)' != 'false'">
     <EnablePackageValidation>true</EnablePackageValidation>
+    <PackageValidationBaselineVersion>0.1.0-preview.1</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsPackable)' != 'false'">
