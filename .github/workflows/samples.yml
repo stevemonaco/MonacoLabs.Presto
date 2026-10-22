@@ -13,8 +13,6 @@ on:
         description: The GitHub release to attach the Windows builds to
         type: string
         required: true
-  schedule:
-    - cron: '0 5 * * 1'
 
 permissions:
   contents: read

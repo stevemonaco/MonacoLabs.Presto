@@ -1,14 +1,23 @@
 name: CI
 
 on:
-  # Branches only: release.yml runs CI itself for a v* tag.
+  # main and PRs only, so a PR branch is not built twice per push; release.yml runs CI itself for a v* tag.
   push:
-    branches: ['**']
+    branches: [main]
+    # Markdown changes skip CI, except the specs, which SpecTests parse.
+    paths: ['**', '!**.md', 'docs/specs/**', '!.claude/**']
   pull_request:
+    paths: ['**', '!**.md', 'docs/specs/**', '!.claude/**']
+  workflow_dispatch:
   workflow_call:
 
 permissions:
   contents: read
+
+# Inside release.yml, github.workflow is "Release", so a release never shares a group with a push or PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-test-pack:
