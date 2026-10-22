@@ -54,7 +54,9 @@ public sealed class MorphClockPageTests
         var label = page.GetControl<TextBlock>("SubmitLabel");
 
         SceneHarness.Click(window, page.GetControl<Button>("SubmitButton"));
-        Assert.True(SceneHarness.WaitFor(() => label is { Text: "✓", Inlines: null or [] }));
+        // Only the send's Task.Delay needs wall-clock time; a slow runner overran 5 s when the morph was waited for too.
+        Assert.True(SceneHarness.WaitFor(() => label.Text == "✓"));
+        TestFrames.Tick((700 / 16) + 1);
         SceneHarness.AssertPlain(label, "✓");
         TestFrames.Tick((1400 + 700) / 16);
 

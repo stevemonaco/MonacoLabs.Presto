@@ -16,6 +16,8 @@ public partial class AdaptiveSheetPage : ShowcasePage
         InitializeComponent();
         HowCode.Code = string.Join("\n\n", Snippets.AdaptiveSheetDetails, Snippets.AdaptiveSheetSettings, Snippets.AdaptiveSheetStyles);
         Widths.SelectionChanged += WidthChanged;
+        // Blocks the inherited view model, which the compiled Place bindings would fail to cast until a note is picked.
+        Details.DataContext = null;
     }
 
     private void WidthChanged(object? sender, SelectionChangedEventArgs e) =>
