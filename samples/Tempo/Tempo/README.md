@@ -20,7 +20,7 @@ dotnet run --project samples/Tempo/Tempo.Desktop
 dotnet run --project samples/Tempo/Tempo.Desktop -- --skip-intro     # start on the main view
 dotnet run --project samples/Tempo/Tempo.Desktop -- --size 360x780   # the compact layout
 dotnet run --project samples/Tempo/Tempo.Browser
-dotnet build -t:Run -f net10.0-android samples/Tempo/Tempo.Android
+dotnet build -t:Run -f net11.0-android samples/Tempo/Tempo.Android
 dotnet test --project tests/Tempo.Tests
 ```
 

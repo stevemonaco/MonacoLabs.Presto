@@ -78,7 +78,8 @@ jobs:
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
-      - run: dotnet workload install wasm-tools
+      # The Browser heads stay on net10.0-browser under the .NET 11 SDK (ARCHITECTURE §5).
+      - run: dotnet workload install wasm-tools-net10
       - name: Publish with WASM AOT
         run: |
           $PSNativeCommandUseErrorActionPreference = $true

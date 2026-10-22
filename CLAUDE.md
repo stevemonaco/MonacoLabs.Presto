@@ -26,7 +26,7 @@ Build configuration is shared through root `Directory.Build.props` (language/nul
 dotnet build MonacoLabs.Presto.slnx
 dotnet test --project tests/MonacoLabs.Presto.Tests          # MTP mode (global.json); note --project, not a bare path
 dotnet test --solution MonacoLabs.Presto.slnx
-tests/PrestoGallery.Tests/bin/Debug/net10.0/PrestoGallery.Tests.exe --report-xunit --results-directory <dir>   # per-test times (after a build)
+tests/PrestoGallery.Tests/bin/Debug/net11.0/PrestoGallery.Tests.exe --report-xunit --results-directory <dir>   # per-test times (after a build)
 dotnet run --project samples/PrestoGallery/PrestoGallery.Desktop
 dotnet watch --project samples/PrestoGallery/PrestoGallery.Desktop      # hot reload (see below)
 dotnet run --project samples/Tempo/Tempo.Desktop               # the Tempo app; -- --skip-intro starts on the main view
