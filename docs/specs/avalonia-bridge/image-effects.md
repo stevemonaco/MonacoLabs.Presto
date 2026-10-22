@@ -276,4 +276,4 @@ depends:
 
 - A source of another aspect resizes the control when a transition starts, re-placing the old image inside the new bounds; whether it should resize only when the transition ends is open.
 - BRIDGE-IMAGE-027 says a different `Seed` draws a different pattern, but `Seed` 0 (the default) and `Seed` 1 draw the same dissolve, pixel for pixel (found by `FilteredImageTests.UnsetNoiseTuningDrawsAsItsDocumentedDefault`, which therefore compares against 2); Skia's perlin noise likely maps a seed at or below 0 onto a positive one, so other pairs (such as -1 and 2) may collide too. Either the seed should be remapped before it reaches Skia or the requirement should say which seeds are distinct.
-- manual — the Browser and Android heads were never smoke-run with a filtered image, so the README has no Platforms note; the Desktop checks (slideshow mid-way screenshots, pixelate card) are manual on the Image effects page.
+- manual — the Browser and Android heads were never smoke-run with a filtered image, so the guide has no Platforms note; the Desktop checks (slideshow mid-way screenshots, pixelate card) are manual on the Image effects page.

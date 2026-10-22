@@ -2,7 +2,7 @@
 
 A .NET animation library inspired by and initially ported from [anime.js v4](https://animejs.com/documentation) ([source](https://github.com/juliangarnier/anime), MIT). The goal is an API that is as simple to use from C# as anime.js is from JavaScript: `Presto.Animate(target, ...)`, timelines, staggering, a rich easing set, and full playback control.
 
-The architecture and the anime.js → Presto provenance map live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); what each feature does and why is in the specs ([docs/specs/](docs/specs/README.md)); work not done yet is in [docs/BACKLOG.md](docs/BACKLOG.md); new work starts as a change proposal in [docs/changes/](docs/changes/README.md).
+The user manual is [GUIDE.md](GUIDE.md) (`README.md` is the landing page, `llms.txt` an index for assistants). The architecture and the anime.js → Presto provenance map live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); what each feature does and why is in the specs ([docs/specs/](docs/specs/README.md)); work not done yet is in [docs/BACKLOG.md](docs/BACKLOG.md); new work starts as a change proposal in [docs/changes/](docs/changes/README.md).
 
 ## Layout
 

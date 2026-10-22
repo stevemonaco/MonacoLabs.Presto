@@ -1,0 +1,17 @@
+# MonacoLabs.Presto
+
+> A .NET animation library ported from anime.js v4.5.0: a framework-agnostic engine (timers, animations, timelines, stagger, eases) plus an Avalonia adapter that makes controls first-class targets. Packages target net10.0.
+
+Start with GUIDE.md: it is the complete user manual in one file. The specs are the source of truth for exact behavior.
+
+## Docs
+
+- [README](https://github.com/stevemonaco/MonacoLabs.Presto/blob/main/README.md): what Presto is, install, a short quick start and a feature index.
+- [GUIDE](https://github.com/stevemonaco/MonacoLabs.Presto/blob/main/GUIDE.md): the complete manual, every feature with its API and examples, the anime.js → Presto map and the C# differences.
+- [Feature specs](https://github.com/stevemonaco/MonacoLabs.Presto/blob/main/docs/specs/README.md): each feature's requirements, tests and design decisions, one file per feature.
+- [CHANGELOG](https://github.com/stevemonaco/MonacoLabs.Presto/blob/main/CHANGELOG.md): what changed in each release.
+
+## Optional
+
+- [Architecture](https://github.com/stevemonaco/MonacoLabs.Presto/blob/main/docs/ARCHITECTURE.md): how the engine and the Avalonia bridge are built, project-wide decisions, and the anime.js provenance map.
+- [Gallery](https://stevemonaco.github.io/MonacoLabs.Presto/): the sample gallery running in the browser.
