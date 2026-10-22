@@ -16,7 +16,7 @@ and multi-feature showcases, each printing the code that runs it.
 
 The GitHub Releases have NativeAOT win-x64 versions, too, but other platforms must be manually built.
 
-* Start of AI-drafted content *
+## AI-drafted content starts here
 
 | Package | What it is |
 |---|---|
