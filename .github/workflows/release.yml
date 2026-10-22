@@ -98,8 +98,15 @@ jobs:
         id: login
         with:
           user: ${{ vars.NUGET_USER || github.repository_owner }}
+      # Files expanded here: the .NET 11 RC2 `dotnet nuget push` finds no match for a forward-slash wildcard on Windows.
       - name: Push to nuget.org
-        run: dotnet nuget push "artifacts/packages/*.nupkg" --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          $packages = @(Get-ChildItem artifacts/packages/*.nupkg)
+          if ($packages.Count -ne 4) { Write-Output "::error::Expected 4 packages, found $($packages.Count)"; exit 1 }
+          foreach ($package in $packages) {
+            dotnet nuget push $package.FullName --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          }
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
