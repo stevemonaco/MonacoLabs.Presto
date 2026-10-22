@@ -1,24 +1,29 @@
 # MonacoLabs.Presto
 
-A .NET animation library inspired by, and initially ported from, [anime.js](https://animejs.com/documentation) v4.5.0:
-a framework-agnostic core that animates any property of any object, plus an Avalonia adapter that makes controls
-first-class targets.
+A .NET animation library inspired by [anime.js](https://animejs.com/documentation) with a primary focus on Avalonia.
 
-The core's timing model (delay, loop, alternate, reverse, seek, stretch and composition) is covered by test suites
-ported from upstream, so changes to it are deliberate. The API is C#-idiomatic: a fluent builder with a typed method per
-animatable property, the anime.js names in PascalCase, and `init`-only parameter records underneath for when the
-property names are only known at run time.
+## Project Status
+
+This is an AI-created library with many iterations via prompts, developing challenging samples, and manual testing.
+
+Code quality and API maintenance are uncertain, so this library should be considered experimental and aspirational though it 
+is feature-complete enough to demonstrate impressive capabilities in the gallery and sample app.
 
 **[Try the gallery in your browser](https://stevemonaco.github.io/MonacoLabs.Presto/)**: a reference page per feature
-and multi-feature showcases, each printing the code that runs it. [Tempo](https://stevemonaco.github.io/MonacoLabs.Presto/tempo/),
-a focus timer, is a whole app built on Presto.
+and multi-feature showcases, each printing the code that runs it.
+
+[Tempo](https://stevemonaco.github.io/MonacoLabs.Presto/tempo/), a focus timer, is a whole app built on Presto.
+
+The GitHub Releases have NativeAOT win-x64 versions, too, but other platforms must be manually built.
+
+* Start of AI-drafted content *
 
 | Package | What it is |
 |---|---|
 | `MonacoLabs.Presto` | The engine: clock, timers, animations, timelines, tweens, values, eases, stagger, utils, animatable, scope. No UI dependency. |
 | `MonacoLabs.Presto.Avalonia` | Avalonia adapter: frame pump, `AvaloniaProperty` targets, transform composition, color/brush/struct codecs, draggable, scroll observer, shapes, text, render-thread scenes, controls and recipes. |
 | `MonacoLabs.Presto.Avalonia.Lottie` | Lottie playback through SkiaSharp.Skottie: a `LottieView` whose frame Presto animates. See [Lottie](#lottie). |
-| `MonacoLabs.Presto.Avalonia.DevTools` | An in-app inspector for MonacoLabs.Presto on Avalonia: freeze, step and slow the engine and watch what it runs. |
+| `MonacoLabs.Presto.Avalonia.DevTools` | An in-app animation inspector for MonacoLabs.Presto on Avalonia: freeze, step and slow the engine and watch what it runs. |
 
 **The full manual is [GUIDE.md](GUIDE.md)**: every feature with its API and examples, in one file.
 
@@ -33,43 +38,6 @@ dotnet add package MonacoLabs.Presto.Avalonia.DevTools
 
 The bridge is built against **Avalonia 12.1.4** and every package targets **net10.0**. The core has no package
 dependencies at all; take it alone if you are driving a game loop, a view model or your own renderer.
-
-## Quick start
-
-An Avalonia control:
-
-```csharp
-using MonacoLabs.Presto;
-
-Square.Animate(b => b
-    .X(320)                                     // transform shorthand → RenderTransform
-    .Rotate(from: -180)
-    .Background("#ff6b6b")                      // brush, from a CSS color string
-    .Duration(1250)
-    .Ease(Eases.InOutQuint)
-    .Loop()
-    .Alternate());
-```
-
-A plain object, and a timeline:
-
-```csharp
-var animation = Presto.Build()
-    .Property(nameof(Ship.X), 320)
-    .Property(nameof(Ship.Opacity), from: 1, to: 0.2)
-    .Duration(1250)
-    .Animate(ship);
-await animation;                                // anime.js .then()
-
-var slide = Presto.Build().X(300).Duration(600).Ease(Eases.OutQuad);
-Presto.CreateTimeline()
-    .Add(a, slide)
-    .Add(b, slide, "-=400")
-    .Add(strip.Children, Presto.Build().Y(-14), Presto.Stagger(60));
-```
-
-The [guide's Quick start](GUIDE.md#quick-start) covers the builder, the parameter objects and the XAML attached
-properties.
 
 ## Avalonia setup
 
@@ -111,7 +79,7 @@ public static AppBuilder BuildAvaloniaApp()
 
 ## Lottie
 
-Lottie files play through a separate package, so the bridge itself takes no Skottie dependency. `LottieView` shows one
+Lottie files play through a separate package. `LottieView` shows one
 frame of a composition drawn by SkiaSharp.Skottie, and Presto drives that frame like any other property:
 
 ```xml
