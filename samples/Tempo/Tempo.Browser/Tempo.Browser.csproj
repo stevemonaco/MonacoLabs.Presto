@@ -13,4 +13,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Tempo\Tempo.csproj" />
   </ItemGroup>
+
+  <Import Project="..\..\BrowserDownloadSizes.targets" />
 </Project>

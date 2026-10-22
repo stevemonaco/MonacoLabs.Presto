@@ -1,0 +1,26 @@
+<Project>
+  <!-- main.js reports download progress in bytes, and dotnet.js's boot config lists the files but not their sizes. -->
+  <UsingTask TaskName="WriteDownloadSizes" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <FrameworkDirectory Required="true" />
+      <OutputFile Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var json = new System.Text.StringBuilder("{");
+        foreach (var file in new System.IO.DirectoryInfo(FrameworkDirectory).GetFiles())
+        {
+            // Uncompressed sizes: the browser decodes before main.js counts the bytes.
+            if (file.Extension == ".gz" || file.Extension == ".br")
+                continue;
+            json.Append(json.Length > 1 ? "," : "").Append('"').Append(file.Name).Append("\":").Append(file.Length);
+        }
+        System.IO.File.WriteAllText(OutputFile, json.Append('}').ToString());
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="WriteDownloadSizes" AfterTargets="Publish">
+    <WriteDownloadSizes FrameworkDirectory="$(PublishDir)wwwroot/_framework" OutputFile="$(PublishDir)wwwroot/download-sizes.json" />
+  </Target>
+</Project>
