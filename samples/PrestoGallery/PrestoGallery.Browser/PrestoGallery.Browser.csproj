@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
   <PropertyGroup>
-    <!-- SkiaSharp's WASM natives predate .NET 11's Emscripten 6 (undefined saveSetjmp at link). -->
-    <TargetFramework>net10.0-browser</TargetFramework>
+    <TargetFramework>net11.0-browser</TargetFramework>
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
@@ -9,6 +8,8 @@
 
   <ItemGroup>
     <PackageReference Include="Avalonia.Browser" />
+    <!-- Lifts Lottie's transitive Skottie to the SkiaSharp 4 that Avalonia.Browser resolves here (Directory.Packages.props). -->
+    <PackageReference Include="SkiaSharp.Skottie" />
   </ItemGroup>
 
   <ItemGroup>

@@ -46,7 +46,7 @@ Reads the outlines of text as geometry, so letters can change shape: `PrestoAval
   - Tests: `GlyphOutlineTests.TextOutlineOriginIsTheTopLeftOfTheFirstLineBox`, `GlyphOutlineTests.TextOutlineStacksLinesDownward`, `GlyphOutlineTests.TextOutlineTakesFontFeatures`
 - **BRIDGE-GLYPHS-004** — A character with no outline (whitespace, a missing glyph, or a glyph of a font carrying color or bitmap tables: `COLR`, `CBDT`, `sbix` or `SVG `) shall add nothing to an outline, so a character made only of such glyphs has an empty outline.
   - Tests: `GlyphOutlineTests.WhitespaceHasAnEmptyOutline`, `GlyphOutlineTests.EmojiHasAnEmptyOutline`
-- **BRIDGE-GLYPHS-005** — When the font simulates bold or oblique, the outline shall be emboldened or skewed by -0.3 as Avalonia.Skia draws it.
+- **BRIDGE-GLYPHS-005** — When the font simulates bold or oblique, the outline shall carry the simulation as Avalonia.Skia draws it: read from the platform's typeface when the platform (DirectWrite, fontconfig) simulated inside it, and emboldened or skewed by -0.3 through Skia for any simulation it did not.
   - Tests: `GlyphOutlineTests.ASimulatedBoldOrObliqueOutlineCoversTheInkAvaloniaDraws`
 - **BRIDGE-GLYPHS-016** — Read from a laid-out block's text layout, each grapheme's outline shall be the glyphs that layout shaped for it, in context, relative to the grapheme's slot: the union of the layout's hit-test rectangles for it, in block coordinates.
   - Tests: `GlyphOutlineTests.AGraphemesOutlineInContextIsTheGlyphTheBlockDraws`, `GlyphRecipeTests.HidingACharacterKeepsTheBlocksLayout`
@@ -93,7 +93,7 @@ Reads the outlines of text as geometry, so letters can change shape: `PrestoAval
 - Glyphs of a fallback font used for characters the typeface lacks are read from that fallback font.
 - Outer figures that overlap (common in variable fonts) are cut each on its own, so their shards overlap where they do; a degenerate ring with no ear is clipped anyway, so cutting always ends.
 - A font collection's stream holds every face; the face whose family name matches the typeface is read, else the first.
-- When Avalonia.Skia no longer has `GeometryImpl.FillPath`, the first outline read throws `MissingMethodException`.
+- When Avalonia.Skia no longer has `GeometryImpl.FillPath`, or `SkiaTypeface.SKTypeface` and `PlatformSimulations`, the first outline read (of a platform-simulated face, for the latter) throws `MissingMethodException`.
 
 ## Threading and lifetime
 
@@ -121,6 +121,7 @@ Reads the outlines of text as geometry, so letters can change shape: `PrestoAval
 - **Shards are triangles merged smallest first, as plain geometries.** Ear clipping with hole bridging handles any outline the contour model reads, and merging the smallest region first keeps shards of similar size out of the slivers a curve's fan of ears leaves; the points flattening adds along straight edges are dropped first, as they only add slivers. A shard is the boundary of its triangles (edges whose reverse it does not hold), so it draws as one figure without seams. `Of` returns `IReadOnlyList<Geometry>` and a shard pivots about its `Bounds` center. Reason: a caller places and spins a shard with what a `Geometry` already exposes. Rejected: a shard type carrying its centroid, a second public type for one point; Voronoi or random-line cuts, which need polygon clipping against curved outlines and holes.
 - **Fill points are a jittered grid.** Reason: a grid gives the even density particles need to tile the letters, and a jitter of at most a quarter cell hides the grid's rows once the particles move while keeping every point in its own cell. Rejected: Poisson-disk sampling, which costs more for no visible difference at particle sizes. Edge points are spread evenly over each figure rather than exactly `spacing` apart, so a closed figure has no short last gap.
 - **Straight segments are subdivided too.** Reason: a warp maps points, so a long straight stem with only its two ends would stay straight; subdividing at load keeps every later frame allocation-free apart from its output geometry.
+- **A face the platform simulated is read from Avalonia.Skia's typeface, not the font data.** Since Avalonia 12.2, DirectWrite and fontconfig embolden or slant inside the typeface they match, and Avalonia.Skia adds through Skia only the simulations the platform did not apply; the font data holds the face as designed, so re-simulating it through Skia drew a heavier bold than the ink. Its `SKTypeface` and `PlatformSimulations` are internal to Avalonia.Skia and read through `[UnsafeAccessor]`. Reason: the outline must cover the ink Avalonia draws (BRIDGE-GLYPHS-005). Rejected for now: always reading the platform's typeface, which is what Avalonia draws but would move every outline off the public `TryGetStream` path to fix a case only simulation shows.
 
 ## Non-goals
 

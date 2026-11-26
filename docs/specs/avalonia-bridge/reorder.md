@@ -107,6 +107,8 @@ depends:
   - Tests: `ReorderTests.DraggingAcrossSeveralRowsMovesOneStepPerRowInOrderDownAndUp`, `ReorderTests.DraggingOverAFilteredViewMovesTheSourceAndKeepsTheRowUnderThePointer`, `ReorderTests.EscapeOverAFilteredViewWalksTheSourceBackToItsOriginalOrder`, `ReorderTests.AltArrowsMoveThroughAFilteredViewAndLeaveTheHiddenItemsInPlace`
 - **BRIDGE-REORDER-022** (inherited) — When the list is a `SelectingItemsControl` whose `SelectedItem` is the moved item, the list shall restore `SelectedItem` after the move.
   - Tests: `ReorderTests.AMovedItemStaysSelected`
+- **BRIDGE-REORDER-046** — Restoring the selection after a move shall not scroll the list to the moved item, so the slots under a still pointer stay put.
+  - Tests: `GestureArenaTests.AHorizontalMouseDragSwipesAndAVerticalOneReorders`, `ReorderTests.AVirtualizedDragFarPastTheViewportKeepsTheSameContainerAndLandsCleanly`
 - **BRIDGE-REORDER-023** — After each move the list shall run a synchronous layout pass, so the next crossing reads the new slots and the translation rebase lands before the frame renders.
   - Tests: `ReorderTests.TheDraggedItemIsDrawnUnderThePointerAcrossEveryMove`
 - **BRIDGE-REORDER-024** — A move shall play neither the moved row's `Presence` enter nor its exit (the move is tracked as `Moved`, see BRIDGE-PRESENCE).
@@ -209,6 +211,7 @@ depends:
 - **A `Move` is tracked as a move.** See BRIDGE-PRESENCE.
 - **A refused step is raised once per crossing.** A canceled, refused or no-op step is not raised again while the center stays past that midpoint, only after it falls back and crosses again. Reason: re-raising it on every pointer move and auto-scroll frame flooded handlers with the same step they had already refused.
 - **A non-movable items source logs a warning at each grab.** Without `Command`, an `ItemsSource` that is neither an `ObservableCollection<T>` nor a `FilteredView<T>` logs one Avalonia `Logger` warning (area `Control`) per grab, and the drag still lifts and springs back. Reason: the drag looks like it works but cannot move anything, and a warning per grab shows up where the developer tries it without throwing from an input handler. Rejected: a `Trace` warning, as first designed, outside the sinks an Avalonia app configures.
+- **A move holds back the list's scroll to the moved item.** While a move restores the selection and lays the list out, a `RequestBringIntoView` for the moved item's container is marked handled at the items panel. Reason: since Avalonia 12.2, `AutoScrollToSelectedItem` scrolls to the re-selected item at the end of that layout pass (it was posted to the dispatcher before), which slid the slots under the pointer and moved the item a second slot, or, auto-scrolling far down a virtualized list, many. The edge band (BRIDGE-REORDER-026) is what scrolls during a drag. Rejected: turning `AutoScrollToSelectedItem` off around the re-selection (turning it back on requests the same scroll), and holding every bring-into-view in the panel for the whole drag (other features, such as scroll anchoring, realize items through it).
 
 ## Non-goals
 

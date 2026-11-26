@@ -2,7 +2,7 @@
   <!-- https://learn.microsoft.com/en-us/nuget/consume-packages/central-package-management -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <AvaloniaVersion>12.1.4</AvaloniaVersion>
+    <AvaloniaVersion>12.2.0</AvaloniaVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Avalonia" Version="$(AvaloniaVersion)" />
@@ -16,7 +16,9 @@
     <PackageVersion Include="Avalonia.Headless" Version="$(AvaloniaVersion)" />
     <PackageVersion Include="Avalonia.Headless.XUnit" Version="$(AvaloniaVersion)" />
     <!-- Must match the SkiaSharp Avalonia resolves: Skottie P/Invokes into that libSkiaSharp. -->
-    <PackageVersion Include="SkiaSharp.Skottie" Version="3.119.4" />
+    <PackageVersion Include="SkiaSharp.Skottie" Version="3.119.4" Condition="'$(TargetFramework)' != 'net11.0-browser'" />
+    <!-- Avalonia.Browser's net11.0-browser assets move to SkiaSharp 4, the first built with .NET 11's Emscripten. -->
+    <PackageVersion Include="SkiaSharp.Skottie" Version="4.151.2" Condition="'$(TargetFramework)' == 'net11.0-browser'" />
     <PackageVersion Include="Semi.Avalonia" Version="12.1.0.1" />
     <PackageVersion Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
     <PackageVersion Include="AvaloniaUI.DiagnosticsSupport.HotReload" Version="1.0.1" />

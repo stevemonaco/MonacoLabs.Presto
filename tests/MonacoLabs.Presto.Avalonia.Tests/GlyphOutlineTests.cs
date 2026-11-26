@@ -185,7 +185,8 @@ public sealed class GlyphOutlineTests : BridgeTestBase
         var ink = InkDrawn(new TextBlock { Text = "I", FontFamily = simulated.FontFamily, FontWeight = simulated.Weight, FontStyle = simulated.Style, FontSize = 100 });
 
         AssertNear(ink, outline, 1.5);
-        Assert.True(outline.Width > PrestoAvalonia.TextOutline("I", plain, 100).Bounds.Width + 3, $"{simulation} left the outline at {outline}");
+        // DirectWrite emboldens inside the face it matches, by 2 DIPs here; Skia's own embolden added more.
+        Assert.True(outline.Width > PrestoAvalonia.TextOutline("I", plain, 100).Bounds.Width + 1, $"{simulation} left the outline at {outline}");
     }
 
     private static Rect InkDrawn(TextBlock block)
