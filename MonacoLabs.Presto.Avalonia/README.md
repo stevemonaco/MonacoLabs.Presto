@@ -13,7 +13,7 @@ controls such as `Sheet`, `Modal` and `ToastHost`.
 dotnet add package MonacoLabs.Presto.Avalonia
 ```
 
-It is built against **Avalonia 12.1.4** and targets **net10.0**. The core package comes with it.
+It is built against **Avalonia 12.2.0** and targets **net10.0**. The core package comes with it.
 
 ## Quick start
 

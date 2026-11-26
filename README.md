@@ -36,7 +36,7 @@ dotnet add package MonacoLabs.Presto.Avalonia.Lottie
 dotnet add package MonacoLabs.Presto.Avalonia.DevTools
 ```
 
-The bridge is built against **Avalonia 12.1.4** and every package targets **net10.0**. The core has no package
+The bridge is built against **Avalonia 12.2.0** and every package targets **net10.0**. The core has no package
 dependencies at all; take it alone if you are driving a game loop, a view model or your own renderer.
 
 ## Avalonia setup

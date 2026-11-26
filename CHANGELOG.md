@@ -6,6 +6,15 @@ All notable changes to the MonacoLabs.Presto packages are recorded here. The for
 
 ## [Unreleased]
 
+### Changed
+
+- The Avalonia packages build against Avalonia 12.2.0 and depend on Avalonia >= 12.2.0.
+
+### Fixed
+
+- A simulated bold or oblique glyph outline matches the ink Avalonia 12.2 draws, where DirectWrite or fontconfig simulates the face.
+- Dragging to reorder a `ListBox` no longer jumps an extra slot (or, in a long virtualized list, many) when Avalonia 12.2 scrolls the re-selected item into view.
+
 ## [0.1.0-preview.1] - 2026-10-22
 
 The first public preview. All four packages ship together at the same version and depend on each other exactly.

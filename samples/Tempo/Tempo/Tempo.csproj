@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <!-- net10.0 serves the Browser heads only; see ARCHITECTURE §5. -->
-    <TargetFrameworks>net11.0;net10.0</TargetFrameworks>
+    <TargetFramework>net11.0</TargetFramework>
     <RootNamespace>Tempo</RootNamespace>
   </PropertyGroup>
 

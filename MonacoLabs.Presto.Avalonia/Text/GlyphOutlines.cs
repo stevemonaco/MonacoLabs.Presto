@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
@@ -39,7 +40,7 @@ internal static class GlyphOutlines
                     var firstCluster = int.MaxValue;
                     foreach (var glyph in glyphs.GlyphInfos) firstCluster = Math.Min(firstCluster, glyph.GlyphCluster);
                     var from = start - index + firstCluster;
-                    var simulations = glyphs.GlyphTypeface.FontSimulations;
+                    var simulations = SkiaSimulations(glyphs.GlyphTypeface);
                     // As Avalonia.Skia simulates bold and oblique.
                     using var font = new SKFont(face, (float)glyphs.FontRenderingEmSize)
                     {
@@ -80,9 +81,25 @@ internal static class GlyphOutlines
 
     private static SKTypeface? Face(GlyphTypeface glyphTypeface) => s_faces.GetValue(glyphTypeface, Load);
 
+    // DirectWrite and fontconfig can embolden or slant inside the typeface they match; Skia adds only what they did not.
+    private static FontSimulations SkiaSimulations(GlyphTypeface glyphTypeface) =>
+        glyphTypeface.FontSimulations & ~PlatformSimulations(glyphTypeface.PlatformTypeface);
+
+    private static FontSimulations PlatformSimulations(IPlatformTypeface platform) =>
+        IsSkia(platform) ? PlatformSimulationsOf(platform) : FontSimulations.None;
+
+    private static bool IsSkia(IPlatformTypeface platform) => platform.GetType().Assembly == typeof(SkiaOptions).Assembly;
+
     private static SKTypeface? Load(GlyphTypeface glyphTypeface)
     {
-        if (!glyphTypeface.PlatformTypeface.TryGetStream(out var stream)) return null;
+        var platform = glyphTypeface.PlatformTypeface;
+        // The font data holds the face as designed, without the simulations the platform applied inside its typeface.
+        if (PlatformSimulations(platform) != FontSimulations.None)
+        {
+            var simulated = SkiaTypefaceOf(platform);
+            return simulated.GetTableTags().Any(s_colorTables.Contains) ? null : simulated;
+        }
+        if (!platform.TryGetStream(out var stream)) return null;
         using var data = SKData.Create(stream);
         stream.Dispose();
         // A collection's stream holds every face; take the one named like the typeface.
@@ -101,6 +118,12 @@ internal static class GlyphOutlines
         first.Dispose();
         return null;
     }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "get_SKTypeface")]
+    private static extern SKTypeface SkiaTypefaceOf([UnsafeAccessorType("Avalonia.Skia.SkiaTypeface, Avalonia.Skia")] object typeface);
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "get_PlatformSimulations")]
+    private static extern FontSimulations PlatformSimulationsOf([UnsafeAccessorType("Avalonia.Skia.SkiaTypeface, Avalonia.Skia")] object typeface);
 
     private static uint Tag(string tag) => (uint)(tag[0] << 24 | tag[1] << 16 | tag[2] << 8 | tag[3]);
 }

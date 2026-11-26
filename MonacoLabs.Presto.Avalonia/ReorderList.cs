@@ -334,11 +334,26 @@ internal sealed class ReorderList : IGestureMember
         {
             return false;
         }
-        // A collection Move drops the moved item from the selection.
-        if (selected) selecting!.SelectedItem = item;
-        // Laid out now so the next crossing reads the new slots and the rebase lands before the frame renders.
-        _list.UpdateLayout();
+        var panel = _list.ItemsPanelRoot;
+        panel?.AddHandler(Control.RequestBringIntoViewEvent, HoldScroll);
+        try
+        {
+            // A collection Move drops the moved item from the selection.
+            if (selected) selecting!.SelectedItem = item;
+            // Laid out now so the next crossing reads the new slots and the rebase lands before the frame renders.
+            _list.UpdateLayout();
+        }
+        finally
+        {
+            panel?.RemoveHandler(Control.RequestBringIntoViewEvent, HoldScroll);
+        }
         return true;
+    }
+
+    // Re-selecting the moved item auto-scrolls to it within this layout pass since Avalonia 12.2, sliding the slots under the pointer.
+    private void HoldScroll(object? sender, RequestBringIntoViewEventArgs e)
+    {
+        if (e.TargetObject is Control container && Equals(_list.ItemFromContainer(container), _item)) e.Handled = true;
     }
 
     private void Raise(Control container)
