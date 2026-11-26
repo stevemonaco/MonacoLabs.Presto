@@ -31,6 +31,11 @@
     <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.2.0.3" />
     <!-- Must match the Xamarin.AndroidX.Core that SplashScreen pulls in, or R8 sees core/core-ktx classes twice. -->
     <PackageVersion Include="Xamarin.AndroidX.Core.Core.Ktx" Version="1.19.0.1" />
+    <!-- Core 1.19 brings Lifecycle 2.11, while these 2.10 packages (via AppCompat, Activity, Fragment) cap their siblings below 2.10.1 (NU1608). -->
+    <PackageVersion Include="Xamarin.AndroidX.Lifecycle.LiveData.Core" Version="2.11.0.1" />
+    <PackageVersion Include="Xamarin.AndroidX.Lifecycle.Process" Version="2.11.0.1" />
+    <PackageVersion Include="Xamarin.AndroidX.Lifecycle.ViewModelSavedState" Version="2.11.0.1" />
+    <PackageVersion Include="Xamarin.AndroidX.Lifecycle.ViewModelSavedState.Android" Version="2.11.0.1" />
     <!-- Pinned to 3.2.x: Avalonia.Headless.XUnit targets xunit.v3.extensibility.core 3.2.2, and [AvaloniaFact] fails discovery with MissingMethodException on 4.x. -->
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
