@@ -14,7 +14,8 @@ namespace MonacoLabs.Presto.Values;
 /// <remarks>
 /// The kind, spread method and units are discrete and come from the end value, so a tween between two kinds of gradient
 /// snaps its geometry to the end value's while its stops interpolate. A gradient eased to a solid brush ends on a
-/// <see cref="SolidColorBrush"/>. A brush's <see cref="Brush.Transform"/> is not carried.
+/// <see cref="SolidColorBrush"/>. The end brush's <see cref="Brush.Transform"/>, <see cref="Brush.TransformOrigin"/> and
+/// <see cref="Brush.RelativeTransform"/> are discrete too, carried in <see cref="DecomposedValue.Discrete"/> to every brush written.
 /// </remarks>
 internal sealed class BrushCodec : IReconcilingValueCodec
 {
@@ -41,9 +42,11 @@ internal sealed class BrushCodec : IReconcilingValueCodec
                 into.Kind = ValueKind.Color;
                 into.Numbers = solid.Color.ToPresto().ToChannels();
                 into.Numbers[3] *= solid.Opacity;
+                into.Discrete = BrushTransforms.Of(solid);
                 return true;
             case IGradientBrush gradient when Decompose(gradient) is { } numbers:
                 ValueParser.Decompose(numbers, into);
+                into.Discrete = BrushTransforms.Of(gradient);
                 return true;
             default:
                 return false;
@@ -54,6 +57,7 @@ internal sealed class BrushCodec : IReconcilingValueCodec
 
     public void Reconcile(DecomposedValue from, DecomposedValue to)
     {
+        var transforms = to.Discrete;
         var fromGradient = IsGradient(from);
         var toGradient = IsGradient(to);
         if (fromGradient && toGradient)
@@ -69,6 +73,8 @@ internal sealed class BrushCodec : IReconcilingValueCodec
             Shape(to, from);
             to.Numbers![Kind] = Solid;
         }
+        // Reshaping decomposes afresh, which clears the end's transforms.
+        to.Discrete = transforms;
     }
 
     /// <summary>Recolors or restops one brush per tween; the brush being animated from is often immutable or shared, so it is never touched.</summary>
@@ -94,11 +100,14 @@ internal sealed class BrushCodec : IReconcilingValueCodec
         if (_brushes.TryGetValue(tween, out var existing) && existing is SolidColorBrush brush)
         {
             brush.Color = color;
-            return brush;
         }
-        brush = new SolidColorBrush(color);
-        _brushes.AddOrUpdate(tween, brush);
-        TargetOwner.Record(brush, tween.Target);
+        else
+        {
+            brush = new SolidColorBrush(color);
+            _brushes.AddOrUpdate(tween, brush);
+            TargetOwner.Record(brush, tween.Target);
+        }
+        BrushTransforms.Apply(tween._toObject as BrushTransforms, brush);
         return brush;
     }
 
@@ -137,6 +146,7 @@ internal sealed class BrushCodec : IReconcilingValueCodec
             TargetOwner.Record(brush, tween.Target);
         }
 
+        BrushTransforms.Apply(tween._toObject as BrushTransforms, brush);
         brush.SpreadMethod = (GradientSpreadMethod)(int)tween._toNumbers[Spread];
         brush.Opacity = Math.Clamp(numbers[Opacity], 0, 1);
         var count = (numbers.Length - Stops) / StopSize;
@@ -279,4 +289,19 @@ internal sealed class BrushCodec : IReconcilingValueCodec
     private static RelativeUnit Unit(int units, int bit) => (units & (1 << bit)) != 0 ? RelativeUnit.Absolute : RelativeUnit.Relative;
 
     private static RelativePoint Point(double[] numbers, int at, int units, int bit) => new(numbers[at], numbers[at + 1], Unit(units, bit));
+
+    private sealed record BrushTransforms(ITransform? Transform, RelativePoint Origin, ITransform? Relative)
+    {
+        public static BrushTransforms? Of(IBrush brush) =>
+            brush.Transform == null && brush.RelativeTransform == null && brush.TransformOrigin == default ? null
+            : new(brush.Transform, brush.TransformOrigin, brush.RelativeTransform);
+
+        // Compared first, so a frame writing the same transforms raises no property change.
+        public static void Apply(BrushTransforms? transforms, Brush brush)
+        {
+            if (!ReferenceEquals(brush.Transform, transforms?.Transform)) brush.Transform = transforms?.Transform;
+            if (brush.TransformOrigin != (transforms?.Origin ?? default)) brush.TransformOrigin = transforms?.Origin ?? default;
+            if (!ReferenceEquals(brush.RelativeTransform, transforms?.Relative)) brush.RelativeTransform = transforms?.Relative;
+        }
+    }
 }

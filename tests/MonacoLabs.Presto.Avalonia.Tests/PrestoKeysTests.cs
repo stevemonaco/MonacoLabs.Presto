@@ -21,6 +21,7 @@ public sealed class PrestoKeysTests : BridgeTestBase
         Enum.GetNames<TransformShorthand>().Concat(Enum.GetNames<EffectShorthand>()).Concat(Enum.GetNames<ClipShorthand>())
             .Concat(Enum.GetNames<MaskShorthand>()).Select(n => (n, (Func<AvaloniaObject>)(() => new Border())))
             .Concat(Enum.GetNames<WarpShorthand>().Select(n => (n, (Func<AvaloniaObject>)(() => new TextBlock()))))
+            .Append(("BackdropBlur", () => new Border()))
             .Append(("Draw", () => new Rectangle()))
             .Append(("ScrollX", () => new ScrollViewer()))
             .Append(("ScrollY", () => new ScrollViewer()));

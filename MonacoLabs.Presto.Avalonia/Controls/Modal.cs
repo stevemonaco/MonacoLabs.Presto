@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Metadata;
 using Avalonia.Threading;
+using MonacoLabs.Presto.Effects;
 
 namespace MonacoLabs.Presto.Controls;
 
@@ -16,8 +17,8 @@ namespace MonacoLabs.Presto.Controls;
 /// <para>
 /// It fills its host, such as a page's panel over the view it covers, and draws its content over the scrim; the content's
 /// own alignment places it. While it is open, the scrim stops input to the host, and focus moves into it. The scrim fades
-/// in with <see cref="Recipes.Fade"/> and out with <see cref="Recipes.FadeOut"/>, and <see cref="Backdrop"/>, when set,
-/// blurs under it. Opened from an origin, the content grows from there with <c>ClipCircle</c> and shrinks back into it on
+/// in with <see cref="Recipes.Fade"/> and out with <see cref="Recipes.FadeOut"/>; <see cref="BackdropBlur"/> blurs whatever
+/// lies behind it, and <see cref="Backdrop"/> one named element. Opened from an origin, the content grows from there with <c>ClipCircle</c> and shrinks back into it on
 /// close. Opened without one, it shows at once, for content that animates in by itself, such as a shared element or the
 /// entrances <see cref="Presence.EnterOnShowProperty"/> replays inside it, and fades out on close.
 /// </para>
@@ -54,6 +55,13 @@ public sealed class Modal : Control
     /// </summary>
     public static readonly StyledProperty<Control?> BackdropProperty =
         AvaloniaProperty.Register<Modal, Control?>(nameof(Backdrop));
+
+    /// <summary>
+    /// The blur radius of whatever lies behind the scrim while the modal is open, animated in on open and out on close; 0,
+    /// the default, blurs nothing. Changed while open, the blur animates to the new radius.
+    /// </summary>
+    public static readonly StyledProperty<double> BackdropBlurProperty =
+        AvaloniaProperty.Register<Modal, double>(nameof(BackdropBlur));
 
     /// <summary>
     /// Makes the element's <see cref="Button.Click"/> (a <see cref="Button"/>) or <see cref="InputElement.Tapped"/> (any
@@ -126,6 +134,13 @@ public sealed class Modal : Control
         set => SetValue(BackdropProperty, value);
     }
 
+    /// <inheritdoc cref="BackdropBlurProperty"/>
+    public double BackdropBlur
+    {
+        get => GetValue(BackdropBlurProperty);
+        set => SetValue(BackdropBlurProperty, value);
+    }
+
     /// <summary>
     /// Opens the modal, revealing its content from the center of <paramref name="from"/>, mapped through screen coordinates
     /// when it is under another visual root; without one, from the pending <see cref="IsOriginProperty"/> origin or at once.
@@ -159,6 +174,7 @@ public sealed class Modal : Control
             BlurBackdrop(change.GetOldValue<Control?>(), 0);
             BlurBackdrop(Backdrop, BackdropRadius);
         }
+        else if (change.Property == BackdropBlurProperty && IsOpen) BlurBehind(BackdropBlur);
     }
 
     /// <inheritdoc/>
@@ -221,6 +237,7 @@ public sealed class Modal : Control
         _scrim.IsHitTestVisible = _panel.IsHitTestVisible = open;
         _scrim.IsVisible = _panel.IsVisible = open;
         BlurBackdrop(Backdrop, open ? BackdropRadius : 0);
+        BlurBehind(open ? BackdropBlur : 0);
         if (open)
         {
             _panel.Focus();
@@ -233,6 +250,12 @@ public sealed class Modal : Control
 
     private static void BlurBackdrop(Control? backdrop, double radius) =>
         backdrop?.Animate(b => b.Blur(radius).Duration(Recipes.Tokens.Medium).Ease(Recipes.Tokens.Ease));
+
+    private void BlurBehind(double radius)
+    {
+        if (radius <= 0 && BackdropComposer.Get(_scrim) <= 0) return;
+        _scrim.Animate(b => b.BackdropBlur(radius).Duration(Recipes.Tokens.Medium).Ease(Recipes.Tokens.Ease));
+    }
 
     private static AnimationBuilder Shrink(Point at)
     {

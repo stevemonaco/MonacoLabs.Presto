@@ -26,7 +26,7 @@ depends:
 
 ## Purpose
 
-`Modal` is a dialog control over a scrim that covers its host. `Open(element)` reveals its content in a circle grown from the element's center; Escape, back, a scrim tap or `Close()` closes it, shrinking back into that origin, and gives focus back to the opener. Show and hide go through `Presence`'s held hide (BRIDGE-PRESENCE), with the reveal and fades from `Recipes` (BRIDGE-RECIPES) and an optional backdrop blur (BRIDGE-EFFECTS).
+`Modal` is a dialog control over a scrim that covers its host. `Open(element)` reveals its content in a circle grown from the element's center; Escape, back, a scrim tap or `Close()` closes it, shrinking back into that origin, and gives focus back to the opener. Show and hide go through `Presence`'s held hide (BRIDGE-PRESENCE), with the reveal and fades from `Recipes` (BRIDGE-RECIPES) and two optional blurs (BRIDGE-EFFECTS): `BackdropBlur` blurs whatever lies behind the scrim, and `Backdrop` one named element.
 
 ## Requirements
 
@@ -63,6 +63,8 @@ depends:
   - Tests: `ModalTests.FocusMovesIntoItAndReturnsToTheOpener`
 - **BRIDGE-MODAL-012** — When it opens with `Backdrop` set, the backdrop shall animate its `Blur` to 6 over `Tokens.Medium` with `Tokens.Ease`.
   - Tests: `ModalTests.OpeningShowsTheScrimBlursTheBackdropAndRevealsFromTheOriginsCenter`
+- **BRIDGE-MODAL-030** — When it opens with `BackdropBlur` above 0, the scrim shall animate its `BackdropBlur` shorthand to that radius over `Tokens.Medium` with `Tokens.Ease`.
+  - Tests: `ModalTests.BackdropBlurBlursBehindTheScrimWhileOpenAndUnblursOnClose`, `StorefrontPageTests.ClickingACardOpensItsQuickViewOverABlurredGridAndCloseHidesIt`
 
 ### Closing
 
@@ -76,6 +78,10 @@ depends:
   - Tests: `ModalTests.EscapeOrBackClosesIt`
 - **BRIDGE-MODAL-027** — When `Backdrop` is replaced while the modal is open, the old backdrop shall animate its `Blur` back to 0 and the new one to 6, both over `Tokens.Medium` with `Tokens.Ease`.
   - Tests: `ModalTests.ABackdropReplacedWhileOpenUnblursAndTheNewOneBlurs`
+- **BRIDGE-MODAL-031** — When it closes while the scrim's backdrop blur is above 0, the scrim shall animate its `BackdropBlur` back to 0 over `Tokens.Medium` with `Tokens.Ease`.
+  - Tests: `ModalTests.BackdropBlurBlursBehindTheScrimWhileOpenAndUnblursOnClose`
+- **BRIDGE-MODAL-032** — When `BackdropBlur` changes while the modal is open, the scrim's backdrop blur shall animate to the new radius over `Tokens.Medium` with `Tokens.Ease`.
+  - Tests: `ModalTests.BackdropBlurChangedWhileOpenAnimatesToTheNewRadius`
 - **BRIDGE-MODAL-017** — When it closes, the modal shall return focus to the element recorded at opening, then raise `Closed`, however it was closed.
   - Tests: `ModalTests.FocusMovesIntoItAndReturnsToTheOpener`, `ModalTests.AnOutsideClickClosesItAndAnInsideClickDoesNot`
 - **BRIDGE-MODAL-018** — When the modal reopens before its exits end, the scrim and content shall play back from where they stand rather than restart.
@@ -91,8 +97,8 @@ depends:
 
 - **BRIDGE-MODAL-022** — While `ReducedMotion` is set, read at each open and close, the content shall show and hide at once, with no reveal, shrink or fade.
   - Tests: `ModalTests.UnderReducedMotionTheContentShowsAndHidesAtOnceAndTheScrimFades`
-- **BRIDGE-MODAL-023** — While `ReducedMotion` is set, the scrim shall still fade in and out through the fade recipes' reduced forms, and the backdrop blur shall still animate.
-  - Tests: `ModalTests.UnderReducedMotionTheContentShowsAndHidesAtOnceAndTheScrimFades`
+- **BRIDGE-MODAL-023** — While `ReducedMotion` is set, the scrim shall still fade in and out through the fade recipes' reduced forms, and both backdrop blurs shall still animate.
+  - Tests: `ModalTests.UnderReducedMotionTheContentShowsAndHidesAtOnceAndTheScrimFades`, `ModalTests.UnderReducedMotionBackdropBlurStillAnimates`
 
 ### Defaults
 
@@ -102,6 +108,8 @@ depends:
   - Tests: `ModalTests.ABindingToIsOpenWithNoModeWritesBackToItsSource`
 - **BRIDGE-MODAL-026** — When `Scrim` is not set, the scrim shall be a 32 % black solid brush (`#52000000`).
   - Tests: `ModalTests.ByDefaultItIsClosedWithA32PercentBlackScrim`
+- **BRIDGE-MODAL-033** — When `BackdropBlur` is not set, it shall be 0, and opening and closing shall animate no backdrop blur.
+  - Tests: `ModalTests.BackdropBlurChangedWhileOpenAnimatesToTheNewRadius`
 
 ## Invariants
 
@@ -124,7 +132,7 @@ depends:
 
 ## Allocation
 
-- Each open and close builds its `Presence` builders and one backdrop animation. Not on the tick path. Each `IsOrigin` activation posts one dispatcher job to clear the pending origin.
+- Each open and close builds its `Presence` builders and up to two blur animations. Not on the tick path. Each `IsOrigin` activation posts one dispatcher job to clear the pending origin.
 
 ## Provenance
 
@@ -137,6 +145,7 @@ depends:
 - **The origin is an argument to `Open`, or the activating element, held for one dispatcher job.** The reveal origin is passed to each `Open`, not held in a property; an opening without one takes the element with `Modal.IsOrigin` whose `Button.Click` or `Tapped` was raised in the same dispatcher job. Reason: it belongs to one opening. In MVVM the button runs a command and the view model opens the modal, so nothing that knows the button calls `Open`; `Click` is raised before the command executes, so the origin is pending before a bound `IsOpen` flips. Holding it for one job means a later origin-less open, such as a keyboard shortcut, does not grow from a stale button. Rejected: the focused element as origin (a flyout's button has focus in the popup's top level, not the modal's); an `Origin` property on `Modal` (an element binding would not cross a `UserControl` boundary such as Tempo's `SettingsFlyout`).
 - **`Open(from)` under another visual root maps through screen coordinates.** `from`'s center goes through `PointToScreen` and the modal's `PointToClient` when `TranslatePoint` finds no common root. Reason: a button in a flyout's popup sits under another root, and screen coordinates are correct for popups on every desktop head (it was Tempo's workaround). A root with no top level still gives no origin.
 - **A reopened modal follows its latest input.** `Open` while open replaces the origin the close shrinks into, and a `Backdrop` replaced while open unblurs as the new one blurs. Reason: the latest call or setting is what the caller means now; keeping the first origin shrank the content into an element the caller had moved on from, and a replaced backdrop stayed blurred for good. Rejected: ignoring `Open` while open.
+- **`Modal` keeps `Backdrop` and adds `BackdropBlur`.** `BackdropBlur` animates the scrim's own `BackdropBlur` shorthand (BRIDGE-EFFECTS), so it blurs whatever lies behind the scrim, needs no reference to the control behind, and does not re-render that control as an effect layer. Reason: the two blur different things. `Backdrop` blurs one named control wherever it is, even when the modal does not cover it, while `BackdropBlur` blurs only what the scrim covers. Content above the scrim, Presence ghosts included, stays sharp under both. Rejected: replacing `Backdrop`, which apps that blur a control the modal does not cover still need.
 - **The motion is fixed by `Recipes.Tokens`.** The reveal, shrink and fades use the token durations and ease, with no builders exposed. Reason: all three pages that hosted a modal wanted the same circle or none.
 - **It measures as its content even while closed.** Reason: opening then never changes an auto-sized host's layout.
 - **Closing goes through `Presence`'s held hide.** The modal sets the scrim's and content's `Presence.Enter`/`Exit` at each open and close, then flips their `IsVisible`. Reason: neither takes input once closing starts, and reopening mid-close plays the exits back from where they stand.

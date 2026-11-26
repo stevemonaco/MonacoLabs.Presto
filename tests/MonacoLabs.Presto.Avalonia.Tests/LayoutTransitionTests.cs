@@ -708,6 +708,31 @@ public sealed class LayoutTransitionTests : CompositorTestBase
         Assert.Equal(start, Box(bar));
     }
 
+    [AvaloniaTheory]
+    [InlineData("flex")]
+    [InlineData("justified wrap")]
+    [InlineData("stretched wrap")]
+    public void AnItemReflowedByAFlexOrJustifiedWrapPanelEasesFromItsOldSlot(string panel)
+    {
+        var bar = new Border { Background = Brushes.Red, Width = 20, Height = 20 };
+        var items = new List<Control> { new Border { Width = 20, Height = 20 }, bar, new Border { Width = 20, Height = 20 } };
+        Panel host = panel == "flex"
+            ? new FlexPanel { JustifyContent = FlexJustifyContent.SpaceBetween, Wrap = FlexWrap.Wrap }
+            : new WrapPanel { ItemsAlignment = panel == "justified wrap" ? WrapPanelItemsAlignment.Justify : WrapPanelItemsAlignment.Stretch };
+        host.Width = 100;
+        host.Children.AddRange(items);
+        new Window { Content = host, Background = Brushes.White, Width = 100, Height = 100 }.Show();
+        Tick();
+        _ = bar.AnimateLayout(Held, Eases.None);
+        var (start, laidOut) = (Box(bar), bar.Bounds);
+
+        host.Children.Insert(0, new Border { Width = 70, Height = 20 });
+        Tick();
+
+        Assert.NotEqual(laidOut.Position, bar.Bounds.Position);
+        Assert.Equal(start.Position, Box(bar).Position);
+    }
+
     /// <summary>A red 40x20 bar under a spacer whose height is what moves it, in a 100x100 window ticked once so it has a composition visual.</summary>
     private static (Border Spacer, Border Bar) ShowStack()
     {

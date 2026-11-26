@@ -80,6 +80,7 @@ public static class PrestoAvalonia
         Presto.Codecs[typeof(GridLength)] = new GridLengthCodec();
         Presto.Codecs[typeof(FontWeight)] = new EnumNumberCodec<FontWeight>(1000);
         Presto.Codecs[typeof(FontStretch)] = new EnumNumberCodec<FontStretch>(9);
+        Presto.Codecs[typeof(FontVariationSettings)] = new FontVariationSettingsCodec();
         HiddenSignal.Install();
         InertiaWake.Install();
         Presto.Engine.TimerCreated = DetachTracker.Track;

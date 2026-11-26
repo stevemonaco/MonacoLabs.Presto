@@ -189,6 +189,21 @@ public sealed class GlyphOutlineTests : BridgeTestBase
         Assert.True(outline.Width > PrestoAvalonia.TextOutline("I", plain, 100).Bounds.Width + 1, $"{simulation} left the outline at {outline}");
     }
 
+    [AvaloniaFact]
+    public void AVariableInstancesOutlineIsReadAtItsCoordinates()
+    {
+        var black = new Typeface(ArchivoVariable, FontStyle.Normal, FontWeight.Normal, FontStretch.Normal, FontVariationSettings.Parse("wght=900"));
+        var thin = new Typeface(ArchivoVariable, FontStyle.Normal, FontWeight.Normal, FontStretch.Normal, FontVariationSettings.Parse("wght=100"));
+        var staticBlack = new Typeface(new FontFamily("avares://MonacoLabs.Presto.Avalonia.Tests/Fonts/Static#Archivo"), weight: FontWeight.Black);
+
+        var outline = PrestoAvalonia.TextOutline("I", black, 100).Bounds;
+
+        AssertNear(PrestoAvalonia.TextOutline("I", staticBlack, 100).Bounds, outline, 0.5);
+        Assert.True(outline.Width > PrestoAvalonia.TextOutline("I", thin, 100).Bounds.Width * 2, $"wght=900 left the outline at {outline}");
+        var block = new TextBlock { Text = "I", FontFamily = ArchivoVariable, FontSize = 100, FontVariations = black.FontVariations };
+        Assert.Equal(outline.Width, PrestoAvalonia.GlyphOutline(block, 0).Bounds.Width, 0.05);
+    }
+
     private static Rect InkDrawn(TextBlock block)
     {
         block.Measure(Size.Infinity);

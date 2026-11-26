@@ -81,8 +81,10 @@ internal sealed class GlyphContours
     public static GlyphContours? From(Geometry geometry) => PathOf(geometry) is { } path ? From(path) : null;
 
     /// <summary>The path Avalonia.Skia fills <paramref name="geometry"/> with, or null when Skia does not draw it.</summary>
-    public static SKPath? PathOf(Geometry geometry) => 
-        PlatformImpl(geometry) is { } impl && impl.GetType().Assembly == typeof(SkiaOptions).Assembly ? FillPath(impl) : null;
+    public static SKPath? PathOf(Geometry geometry) => PlatformImpl(geometry) is { } impl ? PathOf(impl) : null;
+
+    /// <summary>The path Avalonia.Skia fills <paramref name="impl"/> with, or null when Skia did not build it.</summary>
+    public static SKPath? PathOf(IGeometryImpl impl) => impl.GetType().Assembly == typeof(SkiaOptions).Assembly ? FillPath(impl) : null;
 
     // A Geometry hides its figures; Avalonia.Skia keeps them on its internal implementation as an SKPath.
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "get_PlatformImpl")]

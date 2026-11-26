@@ -32,7 +32,7 @@ depends:
 
 ## Purpose
 
-Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned object on one of its properties, as the transform shorthands own `RenderTransform`: `Blur` and `Shadow*` on `Visual.Effect`, `ClipInset` and `ClipCircle` on `Visual.Clip`, and `MaskSweep` on `Visual.OpacityMask`. The 3D shorthands `RotateX`, `RotateY` and `Perspective` join the transform group (BRIDGE-TRANSFORMS). `Tilt` is an attached property that turns an element towards the pointer through those 3D shorthands. The warp shorthands of a split `TextBlock` (`Warp`, `WarpPhase`, `WarpOrigin`, `WarpRadius`) follow the same scalar-plus-companions pattern and are specified in BRIDGE-WARP.
+Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned object on one of its properties, as the transform shorthands own `RenderTransform`: `Blur` and `Shadow*` on `Visual.Effect`, `BackdropBlur` on `Visual.BackdropEffect`, `ClipInset` and `ClipCircle` on `Visual.Clip`, and `MaskSweep` on `Visual.OpacityMask`. The 3D shorthands `RotateX`, `RotateY` and `Perspective` join the transform group (BRIDGE-TRANSFORMS). `Tilt` is an attached property that turns an element towards the pointer through those 3D shorthands. The warp shorthands of a split `TextBlock` (`Warp`, `WarpPhase`, `WarpOrigin`, `WarpRadius`) follow the same scalar-plus-companions pattern and are specified in BRIDGE-WARP.
 
 ## Requirements
 
@@ -60,6 +60,17 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
   - Tests: `EffectTests.RevertRestoresTheUsersOwnEffect`, `FollowTests.AnAnimatedBlurLayersOverTheFollowedBlurAndRevertsToIt`
 - **BRIDGE-EFFECTS-011** — Reading an effect shorthand shall return the bridge effect's value while its kind is animated, a followed blur's radius, or else the user's effect value or the identity.
   - Tests: `EffectTests.BlurStartsFromTheUsersBlurRadius`
+
+### Backdrop blur
+
+- **BRIDGE-EFFECTS-041** — When a `BackdropBlur` frame is written, the bridge shall set `Visual.BackdropEffect` at `Animation` priority to a `BlurEffect` it owns for that visual and set its `Radius`, mutating the same instance on later frames.
+  - Tests: `EffectTests.BackdropBlurAnimatesABlurOnTheBackdropEffect`
+- **BRIDGE-EFFECTS-042** — `BackdropBlur` shall start from and read as the radius of the user's own backdrop blur (the property's value below `Animation` priority), or 0 without one, and reverting it shall dispose the bridge's value, uncovering the user's backdrop effect.
+  - Tests: `EffectTests.BackdropBlurStartsFromTheUsersBackdropBlurAndRevertRestoresIt`
+- **BRIDGE-EFFECTS-043** — While a `BackdropBlur` frame's radius is 0 or less, the bridge shall remove its blur from `Visual.BackdropEffect`, putting it back on the next frame above 0.
+  - Tests: `EffectTests.BackdropBlurBackToZeroRemovesItsBlur`
+- **BRIDGE-EFFECTS-044** — `BackdropBlur` shall never conflict with the effect, clip or mask shorthands.
+  - Tests: `EffectTests.BackdropBlurAnimatesAlongsideTheEffectShorthands`
 
 ### Clip reveals
 
@@ -98,7 +109,7 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
 
 ### Compositor and builder
 
-- **BRIDGE-EFFECTS-025** — An animation on the compositor naming any of these shorthands shall throw `NotSupportedException` (BRIDGE-THREAD).
+- **BRIDGE-EFFECTS-025** — An animation on the compositor naming any of these shorthands, `BackdropBlur` included, shall throw `NotSupportedException` (BRIDGE-THREAD).
   - Tests: `RevealTests.TheCompositorRejectsTheShorthandsOnlyTheBridgeRenders`
 - **BRIDGE-EFFECTS-026** — Every effect and reveal shorthand shall have typed builder methods writing the same key and value as the indexer, including `Shadow(x, y, blur, color)` setting the four shadow shorthands.
   - Tests: `AnimationBuilderBridgeTests.EffectAndRevealMethodsWriteTheIndexerKeysAndValues`, `AnimationBuilderBridgeTests.EffectAndRevealOverloadsWriteTheSameKey`, `AnimationBuilderBridgeTests.TypedEffectValuesAreWrappedAsTheIndexerWouldWrapThem`
@@ -139,7 +150,7 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
 
 ## Invariants
 
-- A visual has at most one effect composer, one clip composer and one mask composer, each installed at `Animation` priority only while it has something to show.
+- A visual has at most one effect composer, one backdrop composer, one clip composer and one mask composer, each installed at `Animation` priority only while it has something to show.
 - At most one effect kind (blur or shadow) and one clip kind (inset or circle) is animated on a visual at any moment.
 
 ## Edge cases
@@ -177,6 +188,8 @@ Shorthands a `Visual` resolves (BRIDGE-TARGETS-002) that animate a bridge-owned 
 - **`MaskSweep` owns a two-stop brush.** One `LinearGradientBrush` with fixed opaque and transparent stops has its start and end points moved each frame; `Shimmer` is a `MaskSweep` loop for the same reason. Reason: Skia clamps stop offsets to 0–1, and the soft edge has to run past both ends of the visual. Rejected: animating stops through the gradient codec.
 - **`Tilt` is an attached property over real 3D rotation.** It springs `RotateX`/`RotateY` (bounce 0.25, 500 ms, velocity preserved) at `Perspective` 800 through an `Animatable`, on the UI thread only, ignoring pointer moves under reduced motion. Reason: tilt needs the pointer position, so it cannot be a builder recipe. Rejected: a compositor skew-and-scale approximation.
 - **Shorthands are followed through attached properties, as a base layer.** See BRIDGE-FOLLOW.
+- **Backdrop blur is a separate shorthand, not a second mode of `Blur`.** `BackdropBlur` drives a bridge-owned `BlurEffect` on `Visual.BackdropEffect` (Avalonia 12.2), starting from the user's own backdrop blur and removed at radius 0, as `Blur` does on `Visual.Effect`. Reason: it is a different property with its own user value, and a visual can carry both, a blurred self over a blurred backdrop. Rejected: a `Blur` argument choosing the property, which would make `Presto.Get(visual, "Blur")` ambiguous.
+- **A backdrop blur's radius animates on the UI thread.** Avalonia's composition-side backdrop properties are internal and not `Animated`, so each frame costs one `ImmutableBlurEffect` and a re-filter of the visual's area; only Avalonia.Skia draws it, and headless drawing does not. Reason: there is no render-thread path to drive. Measured on the Windows Desktop gallery (Debug, the Effects page's backdrop stage over drifting content, Avalonia's render-time overlay): 0.70 ms a frame with no blur, 0.81 ms with a radius-16 `Blur` on the 400×220 scene, 1.24 ms (4.5 ms peak) with a radius-16 `BackdropBlur` on the 420×132 card, and 2.0 ms (7.3 ms peak) with the `Retained` backdrop cache, whose snapshot a moving backdrop dirties every frame; the Browser head is unmeasured (BACKLOG).
 
 ## Non-goals
 

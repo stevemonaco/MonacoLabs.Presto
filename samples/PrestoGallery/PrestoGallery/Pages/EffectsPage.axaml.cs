@@ -1,16 +1,18 @@
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Rendering;
 using MonacoLabs.Presto;
 using PrestoGallery.Showcase;
 
 namespace PrestoGallery.Pages;
 
 /// <summary>
-/// The effect shorthands on real controls: blur, a live drop shadow, <c>BoxShadow</c> beside <c>DropShadowEffect</c>, a
+/// The effect shorthands on real controls: blur, element blur against backdrop blur, a live drop shadow, <c>BoxShadow</c> beside <c>DropShadowEffect</c>, a
 /// <see cref="Flip"/> card, a pointer tilt, clip and mask reveals and a blur-out exit. Each stage prints the code it ran.
 /// </summary>
 public partial class EffectsPage : ShowcasePage
@@ -21,12 +23,19 @@ public partial class EffectsPage : ShowcasePage
 
     public static readonly AnimationBuilder FlipMotion = Presto.Build().Duration(900).Ease(Eases.InOutQuad);
 
+    private static readonly (double Left, double Top, double Size, IBrush Fill)[] Blobs =
+    [
+        (12, 18, 120, Palette.Coral), (150, 96, 140, Palette.Aqua), (262, 6, 112, Palette.Amber),
+        (58, 124, 96, Palette.Violet), (300, 120, 124, Palette.Rose),
+    ];
+
     private static readonly string[] Chores = ["Water the plants", "Reply to Grace", "Book the dentist", "Fix the bike light"];
 
     private Animatable _tilt = null!;
     private string _tiltCode = "";
     private Animation? _reveal;
     private bool _raised;
+    private bool _frosted;
 
     public EffectsPage()
     {
@@ -35,6 +44,8 @@ public partial class EffectsPage : ShowcasePage
         Refill();
         ExitCode.Xaml = $"{Snippets.EffectsList}\n    {Snippets.EffectsRow}";
         ExitCode.CSharp = Snippets.EffectsBlurOut;
+        Populate(ElementScene);
+        Populate(BackdropScene);
     }
 
     public ObservableCollection<string> Items { get; } = [];
@@ -50,6 +61,68 @@ public partial class EffectsPage : ShowcasePage
         var (_, depth) = Snippet.Of(Presto.Set(TiltCard, b => b.Perspective(500)));
         TiltCode.Code = _tiltCode = $"var tilt = {tilt};\n{depth};";
         ApplyShadow();
+        Drift(ElementScene);
+        Drift(BackdropScene);
+        var top = TopLevel.GetTopLevel(this);
+        Scope.Add(_ => () =>
+        {
+            if (top != null) top.RendererDiagnostics.DebugOverlays = RendererDebugOverlays.None;
+            TimingToggle.IsChecked = false;
+        });
+    }
+
+    private static void Populate(Canvas scene)
+    {
+        foreach (var (left, top, size, fill) in Blobs)
+        {
+            var blob = new Ellipse { Width = size, Height = size, Fill = fill };
+            Canvas.SetLeft(blob, left);
+            Canvas.SetTop(blob, top);
+            scene.Children.Add(blob);
+        }
+        var words = new TextBlock { Text = "presto presto presto", FontSize = 46, FontWeight = FontWeight.Black, Foreground = Brushes.White, Opacity = .8 };
+        Canvas.SetLeft(words, -30);
+        Canvas.SetTop(words, 150);
+        scene.Children.Add(words);
+    }
+
+    // Both scenes drift identically, so the two blurs are compared over the same motion; reduced, they hold still.
+    private static void Drift(Canvas scene)
+    {
+        if (Presto.Defaults.ReducedMotion) return;
+        Presto.Build()
+            .X((_, i, _) => (i % 2 == 0 ? 1 : -1) * (36 + (i * 14)))
+            .Y((_, i, _) => (i % 3 == 0 ? -1 : 1) * (20 + (i * 6)))
+            .Duration((FunctionValue)((_, i, _) => 2600 + (i * 450)))
+            .Ease(Eases.InOutSine)
+            .Loop()
+            .Alternate()
+            .Animate(scene.Children);
+    }
+
+    private void FrostClicked(object? sender, RoutedEventArgs e) => Frost(FrostSlider.Value, 600);
+
+    private void ClearClicked(object? sender, RoutedEventArgs e) => Frost(0, 600);
+
+    private void FrostChanged(object? sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (_frosted) Frost(FrostSlider.Value, 160);
+    }
+
+    private void Frost(double radius, double duration) => Scope.Execute(_ =>
+    {
+        _frosted = radius > 0;
+        var (_, element) = Snippet.Of(ElementScene.Animate(Presto.Build().Blur(radius).Duration(duration).Ease(Eases.OutQuad)));
+        var (_, backdrop) = Snippet.Of(Glass.Animate(Presto.Build().BackdropBlur(radius).Duration(duration).Ease(Eases.OutQuad)));
+        FrostCode.Code = $"{element};\n{backdrop};";
+    });
+
+    private void TimingChanged(object? sender, RoutedEventArgs e)
+    {
+        if (TopLevel.GetTopLevel(this) is not { } top) return;
+        top.RendererDiagnostics.DebugOverlays = TimingToggle.IsChecked == true
+            ? RendererDebugOverlays.Fps | RendererDebugOverlays.RenderTimeGraph
+            : RendererDebugOverlays.None;
     }
 
     private void BlurOutClicked(object? sender, RoutedEventArgs e) =>

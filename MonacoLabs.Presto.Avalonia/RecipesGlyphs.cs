@@ -161,7 +161,7 @@ public static partial class Recipes
                 ? new TextBlock
                 {
                     Text = c.Grapheme, FontFamily = textBlock.FontFamily, FontSize = textBlock.FontSize, FontWeight = textBlock.FontWeight,
-                    FontStyle = textBlock.FontStyle, FontStretch = textBlock.FontStretch, FontFeatures = textBlock.FontFeatures, Foreground = textBlock.Foreground,
+                    FontStyle = textBlock.FontStyle, FontStretch = textBlock.FontStretch, FontFeatures = textBlock.FontFeatures, FontVariations = textBlock.FontVariations, Foreground = textBlock.Foreground,
                 }
                 : new Path { Data = c.Outline, Fill = textBlock.Foreground };
             piece.RenderTransformOrigin = new RelativePoint(c.Slot.Width / 2, c.Slot.Height / 2, RelativeUnit.Absolute);

@@ -50,7 +50,7 @@ Initially ported from anime.js `splitText`. A `TextSplitter` takes a `TextBlock`
   - Tests: `TextSplitTests.ASplitInsideAScopeIsRevertedWithIt`
 - **BRIDGE-TEXT-003** — The splitter shall split at once when the block has a positive width, and otherwise at its first size change.
   - Tests: `TextSplitTests.EffectRunsOnceAfterTheSplit`
-- **BRIDGE-TEXT-004** — The splitter shall break the text into lines by measuring a copy of the block with its font family, size, style, weight, stretch, letter spacing, font features, wrapping and padding at the block's width, trimming trailing whitespace from each line.
+- **BRIDGE-TEXT-004** — The splitter shall break the text into lines by measuring a copy of the block with its font family, size, style, weight, stretch, letter spacing, font features, font variations, wrapping and padding at the block's width, trimming trailing whitespace from each line.
   - Tests: `TextSplitTests.SplitsLinesOnly`, `TextSplitTests.SplitsWordsAndLines`, `TextSplitTests.ATabularBlockSplitsOnTabularSlots`
 - **BRIDGE-TEXT-005** — `LineHeight` shall be the height of the first measured line, available inside an effect before the pieces are laid out.
   - Tests: `TextSplitTests.MeasuresTheLineHeightBeforeThePiecesAreLaidOut`
@@ -104,6 +104,8 @@ Initially ported from anime.js `splitText`. A `TextSplitter` takes a `TextBlock`
 
 - **BRIDGE-TEXT-055** — With `Outlines` set, each character piece shall be a `Path` whose `Data` is the character's outline (BRIDGE-GLYPHS-001, shaped with the block's font features) in piece-local coordinates and whose `Fill` is the block's `Foreground` at split time, sized to and placed on the slot a text piece would have had; it is recorded, decorated, hidden from automation and re-split like a text piece.
   - Tests: `TextSplitTests.OutlinePiecesArePathsOnTheSlotsOfTextPieces`, `TextSplitTests.OutlinePiecesAreFilledWithTheBlocksForeground`, `TextSplitTests.AResplitKeepsTheOutlinePieces`
+- **BRIDGE-TEXT-063** — When an outline piece's `TextElement.FontVariations` changes, set on the piece or inherited from the block, the piece shall take the outline, contours and measured slot of its character at those variations (BRIDGE-GLYPHS-018), so pieces animated one by one draw their own instance.
+  - Tests: `TextSplitTests.OutlinePiecesRedrawAtTheirOwnFontVariations`
 - **BRIDGE-TEXT-056** — With `Outlines` set and `Chars` not set, creating the splitter shall throw `ArgumentException`.
   - Tests: `TextSplitTests.OutlinesWithoutCharsThrows`
 - **BRIDGE-TEXT-057** — A character whose outline is empty (BRIDGE-GLYPHS-004) shall be split into a text piece as without `Outlines`.
@@ -177,7 +179,7 @@ Initially ported from anime.js `splitText`. A `TextSplitter` takes a `TextBlock`
 
 ## Allocation
 
-- Not on the tick path.
+- Not on the tick path, except that an outline piece whose `FontVariations` change redraws: one shaped outline, one measured copy and one parsed geometry per change.
 
 ## Provenance
 
@@ -198,6 +200,7 @@ Initially ported from anime.js `splitText`. A `TextSplitter` takes a `TextBlock`
 - **An outside `Text` change re-splits, and the splitter's own writes keep the binding.** While split, a `Text` the splitter did not write becomes its text and is split at once, keeping an effect's time as a resize re-split does; every write goes through `SetCurrentValue`, and `Revert` puts back the current text. Reason: a bound block then ends showing its current text with its binding intact (a reveal on Tempo's Stats best-day line froze the text it started with). Rejected: ending the reveal at once, which loses the animation of a value that changes during the arrival.
 - **A block that resizes to its own split is not split again.** A width change landing on the split's own laid-out width is taken as the block's width rather than starting the re-split debounce (BRIDGE-TEXT-061). Reason: pieces measured one by one lose kerning, so a block sized to its text (Title sequence's centered PRESTO) widened by 2 DIPs from its own split, re-split itself once and left a timeline animating the pieces it had replaced. Rejected: ignoring every size change in the layout pass after a split, which also swallowed a real resize made in the same frame.
 - **Font features reach the splitter and outlines.** The measuring copy and every outline take the block's `FontFeatures`. Reason: with features ignored, a `+tnum` block split on proportional slots and jumped at revert, in every split recipe.
+- **Font variations reach the splitter, and outline pieces follow their own.** The measuring copy takes the block's `FontVariations`, and an outline piece redraws whenever its own `TextElement.FontVariations` changes, through a class handler on `Path`. Reason: Avalonia 12.2's Skia backend draws a text piece in the font's default glyph shapes at the instance's advances, so a variable weight wave over text pieces only changes their spacing, while an outline piece is read at the instance (BRIDGE-GLYPHS-018) and shows it. Rejected: a splitter mode re-reading every piece each frame, which would redraw pieces nothing animates.
 - **An outline piece is sized by measuring its text.** Its `Width` and `Height` come from measuring the piece's text in the block's font, so its slot is exactly the text piece's, trailing no-break space included. Reason: an outline's bounds are its ink, not the advance and line box that layout needs.
 
 ## Non-goals

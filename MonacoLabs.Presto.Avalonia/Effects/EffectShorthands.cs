@@ -2,6 +2,8 @@ namespace MonacoLabs.Presto.Effects;
 
 internal static class EffectShorthands
 {
+    public const string BackdropBlur = "BackdropBlur";
+
     public static EffectShorthand? Parse(string name) => name switch
     {
         "Blur" => EffectShorthand.Blur,

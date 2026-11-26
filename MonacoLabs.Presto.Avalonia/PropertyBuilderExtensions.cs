@@ -484,6 +484,20 @@ public static class PropertyBuilderExtensions
 
     /// <summary>Animates the <c>"ShadowOpacity"</c> drop-shadow opacity through the keyframes <paramref name="keyframes"/> adds.</summary>
     public static T ShadowOpacity<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property(PrestoKeys.ShadowOpacity, keyframes);
+    /// <summary>Animates the <c>"BackdropBlur"</c> radius, the blur of what is drawn behind the visual, to <paramref name="to"/>.</summary>
+    public static T BackdropBlur<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property(PrestoKeys.BackdropBlur, to);
+
+    /// <summary>Animates the <c>"BackdropBlur"</c> radius with its own tween settings.</summary>
+    public static T BackdropBlur<T>(this T builder, TweenValue? to = null, TweenValue? from = null, TweenValue? duration = null,
+        TweenValue? delay = null, EaseValue? ease = null, Composition? composition = null,
+        Func<double, double>? modifier = null) where T : PropertyBuilder<T> =>
+        Init(builder).Property(PrestoKeys.BackdropBlur, to, from, duration, delay, ease, composition, modifier);
+
+    /// <summary>Animates the <c>"BackdropBlur"</c> radius to a value computed per target.</summary>
+    public static T BackdropBlur<T>(this T builder, FunctionValue to) where T : PropertyBuilder<T> => Init(builder).Property(PrestoKeys.BackdropBlur, to);
+
+    /// <summary>Animates the <c>"BackdropBlur"</c> radius through the keyframes <paramref name="keyframes"/> adds.</summary>
+    public static T BackdropBlur<T>(this T builder, Action<TweenKeyframesBuilder> keyframes) where T : PropertyBuilder<T> => Init(builder).Property(PrestoKeys.BackdropBlur, keyframes);
     /// <summary>Animates the <c>"ClipInset"</c> reveal to <paramref name="to"/>.</summary>
     public static T ClipInset<T>(this T builder, TweenValue to) where T : PropertyBuilder<T> => Init(builder).Property(PrestoKeys.ClipInset, to);
 

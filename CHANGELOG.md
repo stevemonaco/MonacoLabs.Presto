@@ -6,9 +6,16 @@ All notable changes to the MonacoLabs.Presto packages are recorded here. The for
 
 ## [Unreleased]
 
+### Added
+
+- A `BackdropBlur` shorthand (`PrestoKeys.BackdropBlur`, `.BackdropBlur(radius)`) that animates a blur on Avalonia 12.2's `Visual.BackdropEffect`, frosting whatever is drawn behind a visual.
+- `Modal.BackdropBlur` blurs whatever lies behind the scrim while the modal is open, with no reference to the control behind.
+- `FontVariations` (Avalonia 12.2's variable-font settings) animates axis by axis, an axis missing from one end taking the font's default. Glyph outlines and outline split pieces are read at the variable instance, and an outline piece redraws when its own `FontVariations` changes, so a staggered weight wave shows on Skia, which draws text at the default instance. `"TextElement.FontVariations"` and the other `TextElement` text properties resolve on any element.
+
 ### Changed
 
 - The Avalonia packages build against Avalonia 12.2.0 and depend on Avalonia >= 12.2.0.
+- A brush tween keeps the end brush's `Transform`, `TransformOrigin` and `RelativeTransform` (new in Avalonia 12.2) instead of dropping them, so a rotated or scaled gradient no longer snaps unrotated on its first frame.
 
 ### Fixed
 

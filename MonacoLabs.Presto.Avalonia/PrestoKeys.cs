@@ -62,6 +62,9 @@ public static class PrestoKeys
     /// <summary>The drop-shadow opacity.</summary>
     public static readonly PropertyKey ShadowOpacity = "ShadowOpacity";
 
+    /// <summary>The blur radius of what is drawn behind the visual.</summary>
+    public static readonly PropertyKey BackdropBlur = "BackdropBlur";
+
     /// <summary>The inset clip reveal.</summary>
     public static readonly PropertyKey ClipInset = "ClipInset";
 

@@ -9,7 +9,8 @@ using PrestoGallery.ViewModels;
 namespace PrestoGallery;
 
 /// <summary>Command-line options that open the gallery in a known state, so manual and automated checks start from the same place.</summary>
-public sealed record LaunchOptions(GalleryPage? Page = null, MotionPreference? Motion = null, int? Width = null, int? Height = null, bool? FramePacing = null)
+public sealed record LaunchOptions(GalleryPage? Page = null, MotionPreference? Motion = null, int? Width = null, int? Height = null, bool? FramePacing = null,
+    bool CompositionSwapChain = false)
 {
     public static string Usage =>
         """
@@ -18,6 +19,9 @@ public sealed record LaunchOptions(GalleryPage? Page = null, MotionPreference? M
           --motion full|reduced|system Set the gallery's motion preference.
           --size <width>x<height>      Set the window size in DIPs, e.g. 1400x1000.
           --frame-pacing on|off        Turn frame pacing on or off (on by default), for A/B checks.
+          --swapchain composition|default
+                                       On Windows, render through a composition swap chain (independent flips) or
+                                       leave Avalonia's default, for frame-delivery A/B checks.
           --list-pages                 Print every page's slug and title, then exit.
         """;
 
@@ -36,7 +40,7 @@ public sealed record LaunchOptions(GalleryPage? Page = null, MotionPreference? M
                 listPages = true;
                 continue;
             }
-            if (name is not ("--page" or "--motion" or "--size" or "--frame-pacing"))
+            if (name is not ("--page" or "--motion" or "--size" or "--frame-pacing" or "--swapchain"))
             {
                 error = $"Unknown argument '{args[i]}'.";
                 return false;
@@ -72,6 +76,14 @@ public sealed record LaunchOptions(GalleryPage? Page = null, MotionPreference? M
                         return false;
                     }
                     options = options with { FramePacing = value == "on" };
+                    break;
+                case "--swapchain":
+                    if (value is not ("composition" or "default"))
+                    {
+                        error = $"--swapchain must be composition or default, not '{value}'.";
+                        return false;
+                    }
+                    options = options with { CompositionSwapChain = value == "composition" };
                     break;
                 default:
                     if (value.Split('x', 'X') is not [var w, var h]

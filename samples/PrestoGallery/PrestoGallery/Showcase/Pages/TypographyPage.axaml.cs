@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -58,6 +59,7 @@ public partial class TypographyPage : ShowcasePage
 
         Scope.Add(_ => () => _wordmark?.Revert());
         ShowWordmark();
+        ShowVariableWave();
 
         _terminal = BuildTerminal();
     }
@@ -152,6 +154,22 @@ public partial class TypographyPage : ShowcasePage
                 Wordmark.ClearValue(TextWarp.KindProperty);
             });
         });
+    }
+    #endregion
+
+    #region snippet TypographyVariableWave
+    // Outline pieces draw the instance each frame asks for; Avalonia 12.2's Skia backend draws text in the default one.
+    private void ShowVariableWave()
+    {
+        var split = PrestoAvalonia.SplitText(VariableWord, new SplitTextParams { Words = null, Chars = new SplitPieceParams(), Outlines = true });
+        if (Presto.Defaults.ReducedMotion) return;
+        split.AddEffect(s => Presto.Animate(s.Chars, b => b
+            .Property(TextElement.FontVariationsProperty, k => k
+                .To("wght=900, wdth=125", duration: 700, ease: Eases.InOutSine)
+                .To("wght=100, wdth=62", duration: 1400, ease: Eases.InOutSine)
+                .To("wght=500, wdth=94", duration: 700, ease: Eases.InOutSine))
+            .Delay(Presto.Stagger(120))
+            .Loop()));
     }
     #endregion
 

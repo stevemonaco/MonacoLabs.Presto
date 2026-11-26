@@ -26,7 +26,9 @@ sealed class Program
             return 0;
         }
         App.Launch = options;
-        return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        var builder = BuildAvaloniaApp();
+        if (options.CompositionSwapChain) builder = builder.With(new Win32PlatformOptions { UseCompositionSwapChain = true });
+        return builder.StartWithClassicDesktopLifetime(args);
     }
 
     // Avalonia configuration, don't remove; also used by visual designer.

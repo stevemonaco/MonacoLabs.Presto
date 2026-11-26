@@ -81,12 +81,13 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
             ["RotateX"] = 1, ["RotateY"] = 2, ["Perspective"] = 3, ["Blur"] = 4, ["ShadowX"] = 5, ["ShadowY"] = 6,
             ["ShadowBlur"] = 7, ["ShadowColor"] = "#f00", ["ShadowOpacity"] = .5, ["ClipInset"] = "10%", ["ClipCircle"] = 8,
             ["ClipCircleCenter"] = "0.5 0.5", ["MaskSweep"] = .25, ["MaskSweepAngle"] = 90, ["MaskSweepFeather"] = .1,
+            ["BackdropBlur"] = 9,
         };
 
         var actual = Presto.Build()
             .RotateX(1).RotateY(2).Perspective(3).Blur(4).ShadowX(5).ShadowY(6).ShadowBlur(7).ShadowColor("#f00").ShadowOpacity(.5)
             .ClipInset("10%").ClipCircle(8).ClipCircleCenter("0.5 0.5").MaskSweep(.25).MaskSweepAngle(90).MaskSweepFeather(.1)
-            .ToParams();
+            .BackdropBlur(9).ToParams();
 
         Assert.Equal(expected.Properties.Keys, actual.Properties.Keys);
         foreach (var key in expected.Properties.Keys) Assert.Equal(expected[key].Raw, actual[key].Raw);
@@ -100,6 +101,7 @@ public sealed class AnimationBuilderBridgeTests : CompositorTestBase
         Assert.Equal(["Blur"], Presto.Build().Blur(from: 0, to: 8, duration: 100).ToParams().Properties.Keys);
         Assert.Equal(["RotateY"], Presto.Build().RotateY(function).ToParams().Properties.Keys);
         Assert.Equal(["MaskSweep"], Presto.Build().MaskSweep(k => k.To(0).To(1)).ToParams().Properties.Keys);
+        Assert.Equal(["BackdropBlur"], Presto.Build().BackdropBlur(from: 0, to: 8, duration: 100).ToParams().Properties.Keys);
     }
 
     [AvaloniaFact]

@@ -39,6 +39,8 @@
   <ItemGroup>
     <AvaloniaResource Include="..\..\samples\PrestoGallery\PrestoGallery\Assets\Lottie\toggle.json" Link="Lottie\toggle.json" />
     <AvaloniaResource Include="..\..\samples\PrestoGallery\PrestoGallery\Assets\Sprites\female_*.png" Link="Sprites\%(Filename)%(Extension)" />
+    <AvaloniaResource Include="..\..\samples\PrestoGallery\PrestoGallery\Assets\Fonts\ArchivoVariable\ArchivoVariable.ttf" Link="Fonts\Variable\ArchivoVariable.ttf" />
+    <AvaloniaResource Include="..\..\samples\PrestoGallery\PrestoGallery\Assets\Fonts\Archivo\Archivo-Black.ttf" Link="Fonts\Static\Archivo-Black.ttf" />
   </ItemGroup>
 
   <ItemGroup>

@@ -76,7 +76,7 @@ Eases a control into the place layout gives it instead of letting it jump: where
 - **BRIDGE-LAYOUT-009** — When layout moves the control, the transition shall invert the move onto the composition `Translation` in the same pass and ease it to zero on the render thread, while `Bounds` already holds the new slot.
   - Tests: `LayoutTransitionTests.ALayoutMoveEasesIntoPlaceInsteadOfJumping`, `ReferencePagesTests.LayoutShufflesAndCloses`
 - **BRIDGE-LAYOUT-010** — The frame rendered right after a layout change shall still show the control at its old position.
-  - Tests: `LayoutTransitionTests.TheFrameAfterALayoutChangeStillShowsTheOldPosition`
+  - Tests: `LayoutTransitionTests.TheFrameAfterALayoutChangeStillShowsTheOldPosition`, `LayoutTransitionTests.AnItemReflowedByAFlexOrJustifiedWrapPanelEasesFromItsOldSlot`
 - **BRIDGE-LAYOUT-011** — When layout moves the control again mid-move, the new move shall start from where the control is drawn (its slot plus what the mirror still holds), not from the slot it left.
   - Tests: `LayoutTransitionTests.ASecondLayoutChangeRetargetsFromWhereTheControlIsDrawn`
 - **BRIDGE-LAYOUT-012** — The move shall use the motion's duration, delay and ease, with the engine's default ease when none is given; a spring ease shall play over its settling duration through its pure solver.

@@ -4,6 +4,7 @@
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:presto="https://github.com/stevemonaco/MonacoLabs.Presto"
                        xmlns:showcase="using:PrestoGallery.Showcase"
+                       xmlns:local="using:PrestoGallery.Pages"
                        mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="450"
                        x:Class="PrestoGallery.Pages.LayoutPage">
     <showcase:ShowcasePage.Resources>
@@ -57,6 +58,35 @@
             <Setter Property="Height" Value="24" />
             <Setter Property="Margin" Value="10" />
             <Setter Property="Foreground" Value="{x:Static showcase:Palette.AccentBright}" />
+        </Style>
+        <Style Selector="Border.frame">
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{x:Static showcase:Palette.Border}" />
+            <Setter Property="Background" Value="{x:Static showcase:Palette.Surface}" />
+        </Style>
+        <Style Selector="Border.tag">
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="CornerRadius" Value="16" />
+        </Style>
+        <Style Selector="Border.tag TextBlock">
+            <Setter Property="Foreground" Value="#101010" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.tile">
+            <Setter Property="Height" Value="64" />
+            <Setter Property="CornerRadius" Value="10" />
+        </Style>
+        <Style Selector="Border.tile TextBlock">
+            <Setter Property="Foreground" Value="#101010" />
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
         </Style>
         <Style Selector="Border.card TextBlock.number">
             <Setter Property="HorizontalAlignment" Value="Right" />
@@ -116,6 +146,36 @@
         </WrapPanel>
 
         <Border Classes="stage">
+            <StackPanel Spacing="20" VerticalAlignment="Center">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="caption" Text="FlexPanel: tags wrap, justify and grow" HorizontalAlignment="Center" TextWrapping="Wrap" />
+                    <Border x:Name="FlexFrame" Classes="frame" MaxWidth="{x:Static local:LayoutPage.WideFrame}">
+                        <FlexPanel x:Name="Tags" Wrap="Wrap" ColumnSpacing="8" RowSpacing="8" AlignItems="Center" />
+                    </Border>
+                </StackPanel>
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="caption" Text="WrapPanel.ItemsAlignment: tiles justify or stretch to fill each line" HorizontalAlignment="Center" TextWrapping="Wrap" />
+                    <Border x:Name="WrapFrame" Classes="frame" MaxWidth="{x:Static local:LayoutPage.WideFrame}">
+                        <WrapPanel x:Name="Tiles" ItemSpacing="8" LineSpacing="8" ItemWidth="88" ItemsAlignment="Justify" />
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <WrapPanel ItemSpacing="8" LineSpacing="8">
+            <ComboBox x:Name="JustifyBox" Width="170" SelectionChanged="JustifySelected" />
+            <ComboBox x:Name="AlignmentBox" Width="150" SelectionChanged="AlignmentSelected" />
+            <Button Content="Add tag" Click="AddTagClicked" />
+            <Button Content="Remove tag" Click="RemoveTag" />
+            <Button Content="Shuffle tiles" Click="ShuffleTiles" />
+            <Button Content="Resize panels" Click="ResizePanels" />
+            <WrapPanel ItemSpacing="8" LineSpacing="6">
+                <TextBlock Classes="caption" Text="grow the first tag" VerticalAlignment="Center" />
+                <ToggleSwitch x:Name="GrowTag" VerticalAlignment="Center" IsCheckedChanged="GrowFirstTag" />
+            </WrapPanel>
+        </WrapPanel>
+
+        <Border Classes="stage">
             <WrapPanel ItemSpacing="24" LineSpacing="6" HorizontalAlignment="Center" VerticalAlignment="Top">
                 <Border x:Name="Faq" Classes="surface" Width="300">
                     <StackPanel Spacing="10">
@@ -131,6 +191,6 @@
         </Border>
 
         <TextBlock Classes="caption" TextWrapping="Wrap"
-                   Text="Every card was handed to AnimateLayout when it was created, so a Shuffle, an Add or a Remove moves it in one layout pass and the pixels ease after it. This is FLIP played on the compositor: where the card was and where layout has just put it are measured on the UI thread, the difference is written to the composition Translation so the frame still renders it where it was, and the render thread eases that back to zero. Bounds is already right throughout, which is why a card is clicked where layout put it rather than where it is drawn. The panel grows under LayoutAnimateMode.PositionAndSize, which inverts the size onto the composition scale about the top left corner — its content scales with it. The avatar card beside it grows under PositionAndSizeCorrected, which counter-scales its direct children on the render thread so the avatar stays round and the name unstretched; its corner radius still scales, since radius is not a composition property. Switch it to plain PositionAndSize to compare. The FAQ card and the swapping panel below take the other road: Animate.ContentSize eases their real layout size on the UI thread and clips meanwhile, so corners, shadow and text stay true and the text never rewraps, at the cost of a layout pass per frame. Next view swaps the panel's content: the old view fades out as a ghost, the new one fades in, and the box resizes in between. Moving between containers is AnimateSharedElement: the square is measured in the window before it is reparented and eased from there into whatever slot its new parent gives it. The paler card is armed from XAML instead, with presto:Animate.Layout=&quot;{presto:Reflow}&quot;, so it moves with the others at the token duration whatever the slow switch says. Freezing sleeps the dispatcher for two seconds; start a slow move first and it keeps easing throughout, because nothing but the first measurement needs the UI thread." />
+                   Text="Every card was handed to AnimateLayout when it was created, so a Shuffle, an Add or a Remove moves it in one layout pass and the pixels ease after it. This is FLIP played on the compositor: where the card was and where layout has just put it are measured on the UI thread, the difference is written to the composition Translation so the frame still renders it where it was, and the render thread eases that back to zero. Bounds is already right throughout, which is why a card is clicked where layout put it rather than where it is drawn. The panel grows under LayoutAnimateMode.PositionAndSize, which inverts the size onto the composition scale about the top left corner — its content scales with it. The avatar card beside it grows under PositionAndSizeCorrected, which counter-scales its direct children on the render thread so the avatar stays round and the name unstretched; its corner radius still scales, since radius is not a composition property. Switch it to plain PositionAndSize to compare. The FAQ card and the swapping panel below take the other road: Animate.ContentSize eases their real layout size on the UI thread and clips meanwhile, so corners, shadow and text stay true and the text never rewraps, at the cost of a layout pass per frame. Next view swaps the panel's content: the old view fades out as a ghost, the new one fades in, and the box resizes in between. Moving between containers is AnimateSharedElement: the square is measured in the window before it is reparented and eased from there into whatever slot its new parent gives it. The paler card is armed from XAML instead, with presto:Animate.Layout=&quot;{presto:Reflow}&quot;, so it moves with the others at the token duration whatever the slow switch says. Freezing sleeps the dispatcher for two seconds; start a slow move first and it keeps easing throughout, because nothing but the first measurement needs the UI thread. The tags and tiles take the same AnimateLayout under PositionAndSizeCorrected, so a tag that grows or a tile that stretches keeps its label true: Avalonia's FlexPanel and WrapPanel.ItemsAlignment need nothing of their own, since a layout transition reads only where the panel arranged each child. Switching justify-content or items alignment, adding or removing a tag, shuffling the tiles and resizing the frames are all one layout pass each; new tags pop in and removed ones pop out through Presence.Enter and Presence.Exit, and Resize panels eases the frames' MaxWidth on the UI thread while their children chase each reflow on the compositor." />
     </StackPanel>
 </showcase:ShowcasePage>

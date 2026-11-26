@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
+using MonacoLabs.Presto.Text;
 using MonacoLabs.Presto.Values;
 
 namespace MonacoLabs.Presto.Tests;
@@ -279,18 +280,41 @@ public sealed class CodecTests : BridgeTestBase
     }
 
     [AvaloniaFact]
-    public void ABrushesTransformIsNotCarriedToTheWrittenBrush()
+    public void ABrushesTransformsAreTakenFromTheEndValue()
     {
+        var (scale, rotate) = (new ScaleTransform(2, 2), new RotateTransform(90));
+        var origin = new RelativePoint(.5, .5, RelativeUnit.Relative);
         var solid = Tweened<IBrush>(new SolidColorBrush(Colors.Red) { Transform = new RotateTransform(45) },
-            TweenValue.Of(new SolidColorBrush(Colors.Blue) { Transform = new ScaleTransform(2, 2) }), .5);
+            TweenValue.Of(new SolidColorBrush(Colors.Blue) { Transform = scale }), .5);
         var from = Linear(new(0, 0), new(1, 0), (0, Colors.Black), (1, Colors.White));
         from.Transform = new RotateTransform(45);
         var to = Linear(new(0, 0), new(0, 1), (0, Colors.White), (1, Colors.Black));
-        to.Transform = new ScaleTransform(2, 2);
-        var gradient = Tweened<IBrush>(from, TweenValue.Of(to), .5);
+        to.RelativeTransform = rotate;
+        to.TransformOrigin = origin;
+        var gradient = Assert.IsAssignableFrom<GradientBrush>(Tweened<IBrush>(from, TweenValue.Of(to), .01));
 
-        Assert.Null(Assert.IsAssignableFrom<Brush>(solid).Transform);
-        Assert.Null(Assert.IsAssignableFrom<GradientBrush>(gradient).Transform);
+        Assert.Same(scale, Assert.IsAssignableFrom<Brush>(solid).Transform);
+        Assert.Null(gradient.Transform);
+        Assert.Same(rotate, gradient.RelativeTransform);
+        Assert.Equal(origin, gradient.TransformOrigin);
+    }
+
+    [AvaloniaFact]
+    public void ABrushesTransformsCarryThroughASolidToGradientRunAndBack()
+    {
+        var rotate = new RotateTransform(90);
+        var to = Linear(new(0, 0), new(1, 0), (0, Colors.Red), (1, Colors.Blue));
+        to.RelativeTransform = rotate;
+        var solidAgain = new SolidColorBrush(Colors.Green) { Transform = new ScaleTransform(3, 3) };
+
+        var toGradient = Assert.IsAssignableFrom<GradientBrush>(Tweened<IBrush>(new SolidColorBrush(Colors.Black), TweenValue.Of(to), .5));
+        var midway = Assert.IsAssignableFrom<GradientBrush>(Tweened<IBrush>(to, TweenValue.Of(solidAgain), .5));
+        var ended = Assert.IsType<SolidColorBrush>(Tweened<IBrush>(to, TweenValue.Of(solidAgain)));
+
+        Assert.Same(rotate, toGradient.RelativeTransform);
+        Assert.Same(solidAgain.Transform, midway.Transform);
+        Assert.Null(midway.RelativeTransform);
+        Assert.Same(solidAgain.Transform, ended.Transform);
     }
 
     [AvaloniaFact]
@@ -424,6 +448,90 @@ public sealed class CodecTests : BridgeTestBase
         Presto.Animate(box, new() { ["Opacity"] = 0, Duration = 100, Ease = ease, Autoplay = false }).Seek(25);
 
         Assert.Equal(1 - easing.Ease(.25), box.Opacity, 9);
+    }
+
+    private static double Axis(TextBlock block, string tag) =>
+        block.FontVariations is { } settings && settings.TryGetValue(Avalonia.Media.Fonts.OpenTypeTag.Parse(tag), out var value) ? value : double.NaN;
+
+    private static TextBlock Variable(string? variations = null) =>
+        new() { Text = "Wave", FontFamily = ArchivoVariable, FontVariations = variations is null ? null : FontVariationSettings.Parse(variations) };
+
+    private static Animation SeekVariations(TextBlock block, TweenValue to, double progress)
+    {
+        var animation = block.Animate(new() { ["FontVariations"] = to, Duration = 100, Ease = "linear", Autoplay = false });
+        animation.Seek(progress * animation.Duration);
+        return animation;
+    }
+
+    [AvaloniaFact]
+    public void FontVariationsWithTheSameAxesInterpolateEachAxis()
+    {
+        var block = Variable("wght=200, wdth=80");
+
+        SeekVariations(block, "wght=800, wdth=120", .5);
+
+        Assert.Equal(500, Axis(block, "wght"));
+        Assert.Equal(100, Axis(block, "wdth"));
+    }
+
+    [AvaloniaFact]
+    public void AnAxisMissingFromOneEndTakesTheFontsDefault()
+    {
+        var unset = Variable();
+        SeekVariations(unset, "wght=900", .5);
+        Assert.Equal(750, Axis(unset, "wght"));
+
+        var narrow = Variable("wght=300, wdth=70");
+        var animation = SeekVariations(narrow, "wght=900", .5);
+        Assert.Equal(600, Axis(narrow, "wght"));
+        Assert.Equal(85, Axis(narrow, "wdth"));
+        animation.Seek(animation.Duration);
+        Assert.Equal(100, Axis(narrow, "wdth"));
+    }
+
+    [AvaloniaFact]
+    public void AStringEndValueTweensAsTheParsedSettingsWould()
+    {
+        var parsed = Variable("wght=100");
+        var typed = Variable("wght=100");
+
+        SeekVariations(parsed, "wdth=110,wght=500", .25);
+        SeekVariations(typed, TweenValue.Of(new FontVariationSettings([new(Avalonia.Media.Fonts.OpenTypeTag.Parse("wght"), 500), new(Avalonia.Media.Fonts.OpenTypeTag.Parse("wdth"), 110)])), .25);
+
+        Assert.Equal(typed.FontVariations, parsed.FontVariations);
+        Assert.Equal(200, Axis(parsed, "wght"));
+        Assert.Throws<FormatException>(() => Variable().Animate(new() { ["FontVariations"] = "wght:700" }));
+    }
+
+    [AvaloniaFact]
+    public void WrittenAxesAreWholeUnitsAndAnUnchangedFrameRewritesTheSameSettings()
+    {
+        var block = Variable("wght=400");
+
+        var animation = SeekVariations(block, "wght=401", .3);
+        var first = block.FontVariations;
+        Assert.Equal(400, Axis(block, "wght"));
+        animation.Seek(40);
+
+        Assert.Same(first, block.FontVariations);
+        animation.Seek(80);
+        Assert.Equal(401, Axis(block, "wght"));
+    }
+
+    [AvaloniaFact]
+    public void SplitPiecesStaggerTheirOwnWeight()
+    {
+        var block = new TextBlock { Text = "abc", FontFamily = ArchivoVariable, FontSize = 40 };
+        Show(block);
+        var split = PrestoAvalonia.SplitText(block, new SplitTextParams { Words = null, Chars = new() });
+
+        var animation = Presto.Animate(split.Chars, new() { ["FontVariations"] = "wght=900", Duration = 100, Delay = Presto.Stagger(100), Ease = "linear", Autoplay = false });
+        animation.Seek(150);
+
+        var weights = split.Chars.Select(c => Axis((TextBlock)c, "wght")).ToArray();
+        Assert.Equal(900, weights[0]);
+        Assert.Equal(750, weights[1]);
+        Assert.True(double.IsNaN(weights[2]) || weights[2] == 600, $"the third piece moved early: {weights[2]}");
     }
 }
 

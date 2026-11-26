@@ -24,7 +24,7 @@ public sealed class DecomposedValue
     /// <summary>The literal text around each of a complex value's <see cref="Numbers"/>, one entry longer than that array.</summary>
     public string[]? Strings { get; set; }
 
-    /// <summary>The whole value of an end that <see cref="DiscreteCodec"/> switches to rather than interpolates.</summary>
+    /// <summary>The whole value of an end that <see cref="DiscreteCodec"/> switches to rather than interpolates, or what another codec takes whole from the end value; the tween keeps the end's.</summary>
     public object? Discrete { get; set; }
 
     /// <summary>Clears every member back to the number 0, which is where <see cref="ValueParser.Decompose"/> starts from.</summary>

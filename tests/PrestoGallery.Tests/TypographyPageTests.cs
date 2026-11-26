@@ -1,8 +1,10 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Media.Fonts;
 using Avalonia.VisualTree;
 using MonacoLabs.Presto;
 using MonacoLabs.Presto.Text;
@@ -291,6 +293,45 @@ public sealed class TypographyPageTests
         Assert.Equal(100, SceneHarness.Number(page.GetControl<TextBlock>("Percent")));
         SceneHarness.Close(window);
     }
+
+    [AvaloniaFact]
+    public void TheVariableWordWavesItsOutlineLettersThroughWeightAndWidthOneAfterAnother()
+    {
+        var page = new TypographyPage();
+        var window = SceneHarness.Show(page, 1000, 1400, frames: 2);
+        var letters = Outlines(page.GetControl<TextBlock>("VariableWord"));
+        Assert.Equal(8, letters.Length);
+        var rest = letters[0].Data!.Bounds.Width;
+
+        TestFrames.Tick(40);
+        // The first layout re-splits the word, so the letters waving now are new pieces.
+        letters = Outlines(page.GetControl<TextBlock>("VariableWord"));
+
+        Assert.True(Axis(letters[0], "wght") > 700 && Axis(letters[0], "wdth") > 105, $"the V only reached {letters[0].GetValue(TextElement.FontVariationsProperty)}");
+        Assert.True(Axis(letters[^1], "wght") < Axis(letters[0], "wght") - 100, $"the E kept pace with the V at {letters[^1].GetValue(TextElement.FontVariationsProperty)}");
+        Assert.True(letters[0].Data!.Bounds.Width > rest * 1.2, $"the heavy V's outline is {letters[0].Data!.Bounds.Width:0.#} wide against {rest:0.#} at rest");
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
+    public void UnderReducedMotionTheVariableWordRestsAtItsOwnInstance()
+    {
+        using var reduced = ReducedMotion.On();
+        var page = new TypographyPage();
+        var window = SceneHarness.Show(page, 1000, 1400, frames: 2);
+        var letters = Outlines(page.GetControl<TextBlock>("VariableWord"));
+        var widths = letters.Select(letter => letter.Data!.Bounds.Width).ToArray();
+
+        TestFrames.Tick(60);
+
+        Assert.NotEmpty(letters);
+        Assert.All(letters, letter => Assert.Equal(500, Axis(letter, "wght")));
+        Assert.Equal(widths, letters.Select(letter => letter.Data!.Bounds.Width));
+        SceneHarness.Close(window);
+    }
+
+    private static double Axis(Control letter, string tag) =>
+        letter.GetValue(TextElement.FontVariationsProperty)!.TryGetValue(OpenTypeTag.Parse(tag), out var value) ? value : double.NaN;
 
     private static Control[] WordmarkLetters(TypographyPage page) =>
         [.. page.GetControl<TextBlock>("Wordmark").GetVisualDescendants().OfType<TextBlock>().Where(text => text.Text?.Length == 1)];

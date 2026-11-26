@@ -34,7 +34,7 @@ internal static class GlyphOutlines
             var index = line.FirstTextSourceIndex;
             foreach (var run in line.TextRuns)
             {
-                if (run is ShapedTextRun { GlyphRun: var glyphs } && Face(glyphs.GlyphTypeface) is { } face)
+                if (run is ShapedTextRun { GlyphRun: var glyphs } && Face(DefaultInstance(glyphs.GlyphTypeface)) is { } face)
                 {
                     // Clusters count from the run's shaping, not the layout's text, and RTL runs list them in reverse.
                     var firstCluster = int.MaxValue;
@@ -47,12 +47,25 @@ internal static class GlyphOutlines
                         Embolden = simulations.HasFlag(FontSimulations.Bold),
                         SkewX = simulations.HasFlag(FontSimulations.Oblique) ? -0.3f : 0,
                     };
+                    var instance = !ReferenceEquals(DefaultInstance(glyphs.GlyphTypeface), glyphs.GlyphTypeface);
+                    var scale = (float)(glyphs.FontRenderingEmSize / glyphs.GlyphTypeface.Metrics.DesignEmHeight);
                     var advance = x;
                     foreach (var glyph in glyphs.GlyphInfos)
                     {
-                        if (glyph.GlyphCluster >= from && glyph.GlyphCluster < from + length && glyph.GlyphIndex != 0 && font.GetGlyphPath(glyph.GlyphIndex) is { } outline)
+                        if (glyph.GlyphCluster >= from && glyph.GlyphCluster < from + length && glyph.GlyphIndex != 0)
                         {
-                            using (outline) path.AddPath(outline, (float)(advance + glyph.GlyphOffset.X), (float)(top + line.Baseline + glyph.GlyphOffset.Y));
+                            var originX = (float)(advance + glyph.GlyphOffset.X);
+                            var originY = (float)(top + line.Baseline + glyph.GlyphOffset.Y);
+                            if (instance && InstanceOutline(glyphs.GlyphTypeface, glyph.GlyphIndex) is { } designed)
+                            {
+                                // In design units with y up, as Avalonia reads the glyf outline at the instance's coordinates.
+                                var place = SKMatrix.CreateScale(scale, -scale).PostConcat(SKMatrix.CreateSkew(font.SkewX, 0)).PostConcat(SKMatrix.CreateTranslation(originX, originY));
+                                path.AddPath(designed, in place);
+                            }
+                            else if (font.GetGlyphPath(glyph.GlyphIndex) is { } outline)
+                            {
+                                using (outline) path.AddPath(outline, originX, originY);
+                            }
                         }
                         advance += glyph.GlyphAdvance;
                     }
@@ -67,7 +80,7 @@ internal static class GlyphOutlines
 
     /// <summary><see cref="Path(string, Typeface, double, double, FontFeatureCollection)"/> in <paramref name="block"/>'s font, size, letter spacing and font features.</summary>
     internal static SKPath Path(string text, TextBlock block) =>
-        Path(text, new Typeface(block.FontFamily, block.FontStyle, block.FontWeight, block.FontStretch), block.FontSize, block.LetterSpacing, block.FontFeatures);
+        Path(text, new Typeface(block.FontFamily, block.FontStyle, block.FontWeight, block.FontStretch, block.FontVariations), block.FontSize, block.LetterSpacing, block.FontFeatures);
 
     /// <summary><see cref="Path(string, Typeface, double, double, FontFeatureCollection)"/> as a geometry with the font's nonzero fill rule, curves kept.</summary>
     internal static Geometry Geometry(string text, Typeface typeface, double fontSize, double letterSpacing = 0, FontFeatureCollection? fontFeatures = null)
@@ -80,6 +93,12 @@ internal static class GlyphOutlines
         path.IsEmpty ? new StreamGeometry() : Avalonia.Media.Geometry.Parse("F1 " + path.ToSvgPathData());
 
     private static SKTypeface? Face(GlyphTypeface glyphTypeface) => s_faces.GetValue(glyphTypeface, Load);
+
+    // The font data, and Skia's typeface over it, hold only the default instance, which every variation clone hands back.
+    private static GlyphTypeface DefaultInstance(GlyphTypeface glyphTypeface) => glyphTypeface.WithVariations(null);
+
+    private static SKPath? InstanceOutline(GlyphTypeface glyphTypeface, ushort glyph) =>
+        glyphTypeface.GetGlyphOutline(glyph) is { } geometry ? GlyphContours.PathOf(geometry) : null;
 
     // DirectWrite and fontconfig can embolden or slant inside the typeface they match; Skia adds only what they did not.
     private static FontSimulations SkiaSimulations(GlyphTypeface glyphTypeface) =>

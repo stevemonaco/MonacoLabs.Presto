@@ -26,6 +26,16 @@ public sealed class TargetAdapterTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void TextElementsInheritedPropertiesResolveOnAnyElement()
+    {
+        var border = new Border();
+
+        border.Animate(new() { ["TextElement.FontSize"] = 40, Duration = 100, Ease = "linear", Autoplay = false }).Seek(50);
+
+        Assert.Equal(26, border.GetValue(Avalonia.Controls.Documents.TextElement.FontSizeProperty), 6);
+    }
+
+    [AvaloniaFact]
     public void AttachedPropertiesResolveThroughTheirOwnerType()
     {
         var canvas = new Canvas();

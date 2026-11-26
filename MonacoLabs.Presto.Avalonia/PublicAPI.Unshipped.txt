@@ -1,1 +1,9 @@
 #nullable enable
+MonacoLabs.Presto.Controls.Modal.BackdropBlur.get -> double
+MonacoLabs.Presto.Controls.Modal.BackdropBlur.set -> void
+static MonacoLabs.Presto.PropertyBuilderExtensions.BackdropBlur<T>(this T! builder, MonacoLabs.Presto.FunctionValue! to) -> T!
+static MonacoLabs.Presto.PropertyBuilderExtensions.BackdropBlur<T>(this T! builder, MonacoLabs.Presto.TweenValue to) -> T!
+static MonacoLabs.Presto.PropertyBuilderExtensions.BackdropBlur<T>(this T! builder, MonacoLabs.Presto.TweenValue? to = null, MonacoLabs.Presto.TweenValue? from = null, MonacoLabs.Presto.TweenValue? duration = null, MonacoLabs.Presto.TweenValue? delay = null, MonacoLabs.Presto.EaseValue? ease = null, MonacoLabs.Presto.Composition? composition = null, System.Func<double, double>? modifier = null) -> T!
+static MonacoLabs.Presto.PropertyBuilderExtensions.BackdropBlur<T>(this T! builder, System.Action<MonacoLabs.Presto.TweenKeyframesBuilder!>! keyframes) -> T!
+static readonly MonacoLabs.Presto.Controls.Modal.BackdropBlurProperty -> Avalonia.StyledProperty<double>!
+static readonly MonacoLabs.Presto.PrestoKeys.BackdropBlur -> MonacoLabs.Presto.PropertyKey

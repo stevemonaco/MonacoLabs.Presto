@@ -647,6 +647,28 @@ delay function of line index × `lineStep` + index on the line × `pieceStep`, a
 the owning split's line height (0 for a control that is not a piece). The ready-made reveals are
 [recipes](#recipes).
 
+#### Variable fonts
+
+`FontVariations` (Avalonia 12.2's `TextElement.FontVariations`) tweens axis by axis from a `FontVariationSettings` or a
+string such as `"wght=900, wdth=125"`. An axis one end leaves out takes the font's default, so `"wght=900"` from an
+unset block starts at the font's own weight. Written values are rounded to whole axis units, since Avalonia caches a
+typeface per instance and never evicts it. Avalonia 12.2's Skia backend draws a `TextBlock` in the default instance's
+glyph shapes at the instance's spacing, so for a visible weight wave split into outline pieces, which are read at each
+piece's own instance and redraw when its `FontVariations` changes:
+
+```csharp
+var split = PrestoAvalonia.SplitText(Word, new SplitTextParams { Words = null, Chars = new(), Outlines = true });
+split.AddEffect(s => Presto.Animate(s.Chars, b => b
+    .Property(TextElement.FontVariationsProperty, k => k
+        .To("wght=900, wdth=125", duration: 700, ease: Eases.InOutSine)
+        .To("wght=100, wdth=62", duration: 1400, ease: Eases.InOutSine)
+        .To("wght=500, wdth=94", duration: 700, ease: Eases.InOutSine))
+    .Delay(Presto.Stagger(120))
+    .Loop()));
+```
+
+`PrestoAvalonia.TextOutline` and `GlyphOutline` read a variable font at the typeface's or block's instance too.
+
 #### Text on a path, morphs and split-flap boards
 
 `TextPath` lays a `TextBlock`'s characters along any `Shape`'s contour, each turned to the tangent. `Offset` (0–1 of the
@@ -1170,13 +1192,14 @@ animation completes or the element detaches:
 
 ### Effects
 
-Blur, drop shadow, 3D rotation and clip or mask reveals are shorthands, like the transform ones. They are written at
-`Animation` priority and changed in place every frame, so nothing is allocated per frame, and `Revert()` uncovers the
-control's own `Effect`, `Clip`, `OpacityMask` or `RenderTransform`.
+Blur, backdrop blur, drop shadow, 3D rotation and clip or mask reveals are shorthands, like the transform ones. They
+are written at `Animation` priority and changed in place every frame, so nothing is allocated per frame, and `Revert()`
+uncovers the control's own `Effect`, `BackdropEffect`, `Clip`, `OpacityMask` or `RenderTransform`.
 
 ```csharp
 card.Animate(b => b.Shadow(0, 12, 24, Color.Parse("#66000000")).Duration(300).Ease(Eases.OutQuad));
 title.Animate(b => b.Blur(from: 12, to: 0).Opacity(from: 0, to: 1).Duration(500));
+glassCard.Animate(b => b.BackdropBlur(18).Duration(400));
 tile.Animate(b => b.RotateY(180).Perspective(600).Duration(700).Ease(Eases.InOutQuart));
 photo.Animate(b => b.ClipCircle(from: 0, to: 1).ClipCircleCenter(new RelativePoint(0.2, 0.3, RelativeUnit.Relative)).Duration(600));
 
@@ -1187,6 +1210,7 @@ photo.Animate(b => b.MaskSweep(from: 0, to: 1).MaskSweepAngle(90).Duration(1100)
 | Shorthand | Drives | Values |
 |---|---|---|
 | `Blur` | `BlurEffect.Radius` | DIPs |
+| `BackdropBlur` | the `BlurEffect` on `Visual.BackdropEffect`, which filters what is drawn behind the visual | DIPs |
 | `ShadowX`, `ShadowY`, `ShadowBlur` | `DropShadowEffect.OffsetX` / `OffsetY` / `BlurRadius` | DIPs |
 | `ShadowColor` | `DropShadowEffect.Color` | color string, `Color` |
 | `ShadowOpacity` | `DropShadowEffect.Opacity` | 0–1 |
@@ -1211,6 +1235,12 @@ starts black, opaque, unblurred and at no offset, so animating `ShadowBlur` alon
 - **Removed at rest.** Any effect costs an offscreen pass, so a blur of 0, or a shadow whose `ShadowOpacity` ended at
   0, is removed rather than left installed. A reveal that ends fully visible (every inset 0, a radius of 1, a sweep at
   1) removes its clip or mask the same way.
+- **Backdrop blur is its own shorthand.** `BackdropBlur` frosts whatever is drawn behind the visual (Avalonia 12.2's
+  `BackdropEffect`), so a translucent card over moving content reads as glass, while `Blur` re-renders the visual itself.
+  It never conflicts with the other shorthands, starts from the control's own backdrop blur, and is removed at radius 0.
+  Only Avalonia.Skia draws it (headless drawing does not), and over a backdrop that moves every frame it costs a
+  re-filter of the visual's area each frame (see [Platforms and status](#platforms-and-status)). `Modal.BackdropBlur`
+  uses it to blur whatever lies behind the scrim.
 - **UI thread only.** The composition layer has no counterpart for any of them, so `AnimateOnCompositor` throws
   `NotSupportedException` for these shorthands.
 
@@ -1852,8 +1882,11 @@ Six platform notes:
   main view, so the bridge cannot ask it for a `TopLevel`; it uses the first visual it animates instead and moves onto
   that top level's frame callback. Until then a 60 Hz render-priority timer pumps, so animations run either way.
 - **Effects render through Skia on every head.** `Blur` and the shadow shorthands cost an offscreen pass wherever they
-  run. What a blur costs in the Browser head has not been measured yet; it is to be measured in the smoke run, not
-  assumed.
+  run. On the Windows Desktop gallery (Debug, the Effects page's backdrop stage over drifting content, render time from
+  Avalonia's overlay) the page rendered in 0.70 ms a frame with no blur, 0.81 ms with a radius-16 `Blur` on the 400×220
+  scene, and 1.24 ms (4.5 ms at worst) with a radius-16 `BackdropBlur` on the 420×132 card; the retained backdrop cache
+  made it worse over moving content (2.0 ms, 7.3 ms at worst), so leave `BackdropEffectCache` to the compositor there.
+  What a blur costs in the Browser head has not been measured yet; it is to be measured in the smoke run, not assumed.
 - **A trackpad pinch reaches `Transformable` differently on each platform.** On Windows and in the Browser it arrives
   as Ctrl+wheel, which the default `WheelZoom` handles. On macOS, `Avalonia.Native` raises magnify and rotate gestures,
   which zoom and (with `Rotate` on) turn about the pointer. X11 raises no touchpad gestures, so a trackpad pinch on Linux

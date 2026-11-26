@@ -97,6 +97,13 @@ public sealed class TextSplitter : IRevertible, IReleasable
     private static readonly AttachedProperty<TextSplitter?> OwnerProperty =
         AvaloniaProperty.RegisterAttached<TextSplitter, Control, TextSplitter?>("Owner");
 
+    static TextSplitter() =>
+        TextElement.FontVariationsProperty.Changed.AddClassHandler<Path>(static (piece, _) =>
+        {
+            if (piece.GetValue(OwnerProperty) is { } splitter && piece.GetValue(GraphemeProperty) is { } text)
+                splitter.Draw(piece, text, piece.GetValue(TextElement.FontVariationsProperty));
+        });
+
     /// <summary>The line pieces, empty unless <see cref="SplitTextParams.Lines"/> is set.</summary>
     public IReadOnlyList<Control> Lines => _lines;
 
@@ -320,6 +327,7 @@ public sealed class TextSplitter : IRevertible, IReleasable
         FontStretch = _host.FontStretch,
         LetterSpacing = _host.LetterSpacing,
         FontFeatures = _host.FontFeatures,
+        FontVariations = _host.FontVariations,
         UseLayoutRounding = false,
     };
 
@@ -381,16 +389,28 @@ public sealed class TextSplitter : IRevertible, IReleasable
     private Control CharPiece(string text)
     {
         if (!_parameters.Outlines) return Piece(text);
-        using var outline = GlyphOutlines.Path(text, _host);
-        if (outline.IsEmpty) return Piece(text);
-
-        var slot = Copy(text);
-        slot.Measure(Size.Infinity);
-        var piece = new Path { Data = GlyphOutlines.Geometry(outline), Fill = _host.Foreground, Width = slot.DesiredSize.Width, Height = slot.DesiredSize.Height };
+        var piece = new Path { Fill = _host.Foreground };
+        if (!Draw(piece, text, _host.FontVariations)) return Piece(text);
         piece.SetValue(GraphemeProperty, text);
-        piece.SetValue(ContoursProperty, GlyphContours.From(outline));
         AutomationProperties.SetAccessibilityView(piece, AccessibilityView.Raw);
         return piece;
+    }
+
+    /// <summary>Gives an outline piece the outline and slot of <paramref name="text"/> at <paramref name="variations"/>; false when the text has no outline.</summary>
+    private bool Draw(Path piece, string text, FontVariationSettings? variations)
+    {
+        using var outline = GlyphOutlines.Path(text, new Typeface(_host.FontFamily, _host.FontStyle, _host.FontWeight, _host.FontStretch, variations),
+            _host.FontSize, _host.LetterSpacing, _host.FontFeatures);
+        if (outline.IsEmpty) return false;
+
+        var slot = Copy(text);
+        slot.FontVariations = variations;
+        slot.Measure(Size.Infinity);
+        piece.Data = GlyphOutlines.Geometry(outline);
+        piece.Width = slot.DesiredSize.Width;
+        piece.Height = slot.DesiredSize.Height;
+        piece.SetValue(ContoursProperty, GlyphContours.From(outline));
+        return true;
     }
 
     private static TextBlock Piece(string text)

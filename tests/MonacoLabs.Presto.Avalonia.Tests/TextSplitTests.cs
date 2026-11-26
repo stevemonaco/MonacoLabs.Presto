@@ -434,6 +434,26 @@ public sealed class TextSplitTests : BridgeTestBase
     }
 
     [AvaloniaFact]
+    public void OutlinePiecesRedrawAtTheirOwnFontVariations()
+    {
+        var block = new TextBlock { Text = "Il", FontFamily = ArchivoVariable, FontSize = 40, FontVariations = FontVariationSettings.Parse("wght=100") };
+        Show(block);
+        var split = PrestoAvalonia.SplitText(block, new() { Words = null, Chars = new(), Outlines = true });
+        var piece = Assert.IsType<Path>(split.Chars[0]);
+        var thin = piece.Data!.Bounds.Width;
+        var other = Assert.IsType<Path>(split.Chars[1]).Data!.Bounds;
+
+        Presto.Animate(piece, new() { ["TextElement.FontVariations"] = "wght=900", Duration = 100, Autoplay = false }).Seek(100);
+
+        var bold = new TextBlock { Text = "I", FontFamily = ArchivoVariable, FontSize = 40, FontVariations = FontVariationSettings.Parse("wght=900"), UseLayoutRounding = false };
+        Assert.Equal(PrestoAvalonia.GlyphOutline(bold, 0).Bounds.Width, piece.Data!.Bounds.Width, 0.01);
+        Assert.True(piece.Data.Bounds.Width > thin * 2);
+        bold.Measure(Size.Infinity);
+        Assert.Equal(bold.DesiredSize.Width, piece.Width, 0.01);
+        Assert.Equal(other, Assert.IsType<Path>(split.Chars[1]).Data!.Bounds);
+    }
+
+    [AvaloniaFact]
     public void OutlinePiecesArePathsOnTheSlotsOfTextPieces()
     {
         var plain = PrestoAvalonia.SplitText(ShowText(), new() { Lines = new(), Chars = new() });

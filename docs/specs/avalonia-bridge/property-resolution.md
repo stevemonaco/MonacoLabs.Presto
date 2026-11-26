@@ -59,8 +59,8 @@ depends:
   - Tests: `ScrollShorthandTests.TheShorthandsResolveOnlyOnAScrollViewer`, `TextWarpTests.TheShorthandsResolveOnlyOnATextBlock`
 - **BRIDGE-TARGETS-004** — When the name has no dot, the adapter shall resolve it through `AvaloniaPropertyRegistry.FindRegistered` for the target's runtime type.
   - Tests: `TargetAdapterTests.NamedPropertiesAnimateToCompletion`
-- **BRIDGE-TARGETS-005** (inherited) — When the name is `"Owner.Name"`, the adapter shall match it against the attached properties registered for the target's type first, then its other registered properties, comparing `Name` and the simple name of `OwnerType`.
-  - Tests: `TargetAdapterTests.AttachedPropertiesResolveThroughTheirOwnerType`, `PropertyNamingTests.TheQualifiedSpellingSharesTheSameKey`
+- **BRIDGE-TARGETS-005** — When the name is `"Owner.Name"`, the adapter shall match it against the attached properties registered for the target's type first, then its other registered properties, then, when the owner is `TextElement`, the attached properties `TextElement` hosts on itself, comparing `Name` and the simple name of `OwnerType`.
+  - Tests: `TargetAdapterTests.AttachedPropertiesResolveThroughTheirOwnerType`, `PropertyNamingTests.TheQualifiedSpellingSharesTheSameKey`, `TargetAdapterTests.TextElementsInheritedPropertiesResolveOnAnyElement`
 - **BRIDGE-TARGETS-006** — When no property matches, `Resolve` shall throw `ArgumentException` naming the target type and the property, from the `Animate`/`Set` call that resolved it.
   - Tests: `TargetAdapterTests.AnUnknownPropertyNameThrows`
 - **BRIDGE-TARGETS-007** — The bridge shall key a typed `AvaloniaProperty` as `"{OwnerType.Name}.{Name}"` everywhere it accepts one: both params indexers, `PropertyBuilderExtensions.Property`, the typed `Animatable` extensions, the `PrestoAvalonia` `Get`/`Remove`/`GetAnimations` overloads and `PrestoKeys.Of`.
@@ -165,6 +165,7 @@ depends:
 
 ## Decisions
 
+- **`TextElement`'s inherited text properties resolve on any element.** `"TextElement.FontVariations"` and its siblings are found on a `Path` or `Border` though `TextElement` registers them with itself as host. Reason: they inherit through, and XAML sets them on, any element, and an outline piece animates its own `FontVariations` (BRIDGE-TEXT-063). Rejected: matching any attached property by owner name on any type, which the registry cannot list without the owner type.
 - **Animated values are written at `Animation` priority.** Reason: animated values sit above local values, and `Revert()` restores the user's values precisely by clearing that priority.
 - **One binding per animated property, with residual allocations accepted.** Each (property, target) is animated through one `Animation`-priority binding that every frame pushes into, typed for `double` and untyped otherwise; Avalonia's property-changed args per write and boxing for non-`double` types are accepted. Reason: a `SetValue` per frame at that priority creates a value entry each time (`Opacity`: 288 → 104 → 80 bytes per frame), and the remainder is Avalonia's own structure. Rejected: `SetValue` per frame.
 - **Codec-less properties are discrete; there is no `AutoAlpha`.** Any property type without a codec gets a `DiscreteCodec`, `TrueThroughout` for `IsVisible` and `Midpoint` otherwise; compositor animations on one throw. Reason: `IsVisible = false` removes an element from layout (unlike CSS `visibility: hidden`), so a fade ending hidden would jump, and `Presence`'s `Hold` mode already covers fading before a hide. Rejected: a GSAP-style `AutoAlpha` shorthand.

@@ -52,6 +52,32 @@ public sealed class ReferencePagesTests
     }
 
     [AvaloniaFact]
+    public void TheFlexAndWrapPanelsReflowUnderTheirControls()
+    {
+        var page = new LayoutPage();
+        var window = SceneHarness.Show(page, 900, 1400);
+        var (tags, tiles) = (page.GetControl<FlexPanel>("Tags"), page.GetControl<WrapPanel>("Tiles"));
+        var frame = page.GetControl<Border>("FlexFrame");
+        var count = tags.Children.Count;
+
+        SceneHarness.Click(window, Button(page, "Add tag"));
+        page.GetControl<ComboBox>("JustifyBox").SelectedItem = FlexJustifyContent.SpaceEvenly;
+        page.GetControl<ComboBox>("AlignmentBox").SelectedItem = WrapPanelItemsAlignment.StretchAll;
+        page.GetControl<ToggleSwitch>("GrowTag").IsChecked = true;
+        SceneHarness.Click(window, Button(page, "Resize panels"));
+        TestFrames.Tick(60);
+
+        Assert.Equal(count + 1, tags.Children.Count);
+        Assert.Equal(FlexJustifyContent.SpaceEvenly, tags.JustifyContent);
+        Assert.Equal(WrapPanelItemsAlignment.StretchAll, tiles.ItemsAlignment);
+        Assert.Equal(1, Flex.GetGrow(tags.Children[0]));
+        Assert.Equal(300, frame.MaxWidth);
+        Assert.Equal(frame.Bounds.Width - frame.Padding.Left - frame.Padding.Right - 2, tags.Bounds.Width, 1);
+        Assert.Equal(tiles.Bounds.Width, tiles.Children[0].Bounds.Width + tiles.Children[1].Bounds.Width + tiles.ItemSpacing, 1);
+        SceneHarness.Close(window);
+    }
+
+    [AvaloniaFact]
     public void TheFaqCardEasesOpenToItsNaturalHeightWithoutRewrappingTheAnswer()
     {
         var page = new LayoutPage();
@@ -525,8 +551,8 @@ public sealed class ReferencePagesTests
     public async Task EveryEffectsStageRunsAndClosingLeavesNoBridgeOwnedEffectClipOrMask()
     {
         var page = new EffectsPage();
-        var window = SceneHarness.Show(page, 1100, 2600);
-        foreach (var content in new[] { "Blur out", "Raise", "Flip", "Inset", "Circle", "Sweep" }) SceneHarness.Click(window, Button(page, content));
+        var window = SceneHarness.Show(page, 1100, 3000);
+        foreach (var content in new[] { "Blur out", "Frost", "Raise", "Flip", "Inset", "Circle", "Sweep" }) SceneHarness.Click(window, Button(page, content));
         page.GetControl<Slider>("ShadowXSlider").Value = -20;
         var remove = Button(page, "✕");
         // The stages above push the rows down, and a row takes clicks only once it is drawn in its new slot.
@@ -537,6 +563,8 @@ public sealed class ReferencePagesTests
         TestFrames.Tick(20);
 
         Assert.True(page.GetControl<Image>("BlurPicture").IsAnimating(Visual.EffectProperty), "the picture never blurred");
+        Assert.True(page.GetControl<Canvas>("ElementScene").IsAnimating(Visual.EffectProperty), "the element scene never blurred");
+        Assert.True(page.GetControl<Border>("Glass").IsAnimating(Visual.BackdropEffectProperty), "the glass card never frosted its backdrop");
         Assert.True(page.GetControl<Border>("EffectCard").IsAnimating(Visual.EffectProperty), "the effect card never raised its shadow");
         Assert.True(page.GetControl<Image>("RevealPicture").IsAnimating(Visual.OpacityMaskProperty), "the sweep never masked the picture");
         Assert.False(page.GetControl<Border>("TiltCard").RenderTransform!.Value.IsIdentity, "the card never tilted");
@@ -547,7 +575,7 @@ public sealed class ReferencePagesTests
         var visuals = page.GetVisualDescendants().Prepend(page).ToList();
         Assert.Empty(visuals.SelectMany(visual => Presto.GetAnimations(visual)));
         Assert.All(visuals, visual => Assert.False(
-            visual.IsAnimating(Visual.EffectProperty) || visual.IsAnimating(Visual.ClipProperty) || visual.IsAnimating(Visual.OpacityMaskProperty),
+            visual.IsAnimating(Visual.EffectProperty) || visual.IsAnimating(Visual.BackdropEffectProperty) || visual.IsAnimating(Visual.ClipProperty) || visual.IsAnimating(Visual.OpacityMaskProperty),
             $"{visual.GetType().Name} {visual.Name} kept a bridge-owned effect, clip or mask"));
         Assert.IsType<Avalonia.Media.DropShadowEffect>(page.GetControl<Border>("EffectCard").Effect);
     }

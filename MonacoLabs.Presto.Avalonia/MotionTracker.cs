@@ -444,6 +444,7 @@ internal sealed class MotionTracker
         if (EffectShorthands.Parse(property) is { } effect) return TweenValue.Of(EffectComposer.Identity(effect));
         if (EffectShorthands.ParseClip(property) is { } clip) return TweenValue.Of(ClipComposer.Identity(clip));
         if (EffectShorthands.ParseMask(property) is { } mask) return TweenValue.Of(MaskComposer.Identity(mask));
+        if (property == EffectShorthands.BackdropBlur) return TweenValue.Of(0d);
         if (_control is TextBlock && WarpComposer.Parse(property) is { } warp) return TweenValue.Of(WarpComposer.Identity(_control, warp));
         var avaloniaProperty = AvaloniaObjectTargetAdapter.ResolveProperty(_control.GetType(), property)
             ?? throw new NotSupportedException($"{property} has no rest value for a motion state to return to.");

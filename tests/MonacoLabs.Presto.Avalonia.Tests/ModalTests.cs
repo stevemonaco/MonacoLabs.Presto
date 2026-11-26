@@ -156,6 +156,54 @@ public sealed class ModalTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void BackdropBlurBlursBehindTheScrimWhileOpenAndUnblursOnClose()
+    {
+        var (_, modal, opener) = Stage();
+        modal.BackdropBlur = 12;
+
+        modal.Open(opener);
+        Tick();
+        Frames.Advance(Recipes.Tokens.Medium / 2, 20);
+        Assert.True(Scrim(modal).BackdropEffect is BlurEffect { Radius: > 0 and < 12 }, $"the scrim showed {Scrim(modal).BackdropEffect} halfway in");
+        Frames.Advance(3000, 20);
+        Assert.Equal(12, Assert.IsType<BlurEffect>(Scrim(modal).BackdropEffect).Radius, 3);
+
+        modal.Close();
+        Tick();
+        Frames.Advance(3000, 20);
+        Assert.Null(Scrim(modal).BackdropEffect);
+    }
+
+    [AvaloniaFact]
+    public void BackdropBlurChangedWhileOpenAnimatesToTheNewRadius()
+    {
+        var (_, modal, _) = Opened();
+        Assert.Null(Scrim(modal).BackdropEffect);
+
+        modal.BackdropBlur = 8;
+        Frames.Advance(3000, 20);
+        Assert.Equal(8, Assert.IsType<BlurEffect>(Scrim(modal).BackdropEffect).Radius, 3);
+
+        modal.BackdropBlur = 0;
+        Frames.Advance(3000, 20);
+        Assert.Null(Scrim(modal).BackdropEffect);
+    }
+
+    [AvaloniaFact]
+    public void UnderReducedMotionBackdropBlurStillAnimates()
+    {
+        var (_, modal, opener) = Stage();
+        modal.BackdropBlur = 12;
+        Presto.Defaults.ReducedMotion = true;
+
+        modal.Open(opener);
+        Tick();
+        Frames.Advance(Recipes.Tokens.Medium / 2, 20);
+
+        Assert.True(Scrim(modal).BackdropEffect is BlurEffect { Radius: > 0 and < 12 }, $"the scrim showed {Scrim(modal).BackdropEffect} halfway in");
+    }
+
+    [AvaloniaFact]
     public void UnderReducedMotionTheContentShowsAndHidesAtOnceAndTheScrimFades()
     {
         var (_, modal, opener) = Stage();

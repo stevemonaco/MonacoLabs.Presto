@@ -18,9 +18,15 @@
         <Style Selector="TextBlock#Wordmark">
             <Setter Property="FontSize" Value="104" />
         </Style>
+        <Style Selector="TextBlock#VariableWord">
+            <Setter Property="FontSize" Value="84" />
+        </Style>
         <ContainerQuery Name="page" Query="max-width:479">
             <Style Selector="TextBlock#Wordmark">
                 <Setter Property="FontSize" Value="60" />
+            </Style>
+            <Style Selector="TextBlock#VariableWord">
+                <Setter Property="FontSize" Value="44" />
             </Style>
             <Style Selector="TextBlock.headline">
                 <Setter Property="FontSize" Value="30" />
@@ -84,6 +90,15 @@
 
         <Border Classes="stage">
             <StackPanel Spacing="16">
+                <TextBlock Classes="eyebrow showcase" Text="CHARS · VARIABLE FONT WEIGHT AND WIDTH WAVE" />
+                <TextBlock x:Name="VariableWord" Text="VARIABLE" FontFamily="{StaticResource VariableDisplayFont}"
+                           FontVariations="wght=500, wdth=94" HorizontalAlignment="Center" Margin="0,8"
+                           Foreground="{x:Static showcase:Palette.Accent}" />
+            </StackPanel>
+        </Border>
+
+        <Border Classes="stage">
+            <StackPanel Spacing="16">
                 <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Classes="eyebrow showcase" Text="SCRAMBLE · DECODE TERMINAL"
                                VerticalAlignment="Center" />
@@ -107,5 +122,7 @@
 
         <showcase:CodePanel Header="How it's built" IsExpanded="False"
                             Code="{x:Static showcase:Snippets.TypographyRotatorAndWordmark}" />
+        <showcase:CodePanel Header="The variable font wave" IsExpanded="False"
+                            Code="{x:Static showcase:Snippets.TypographyVariableWave}" />
     </StackPanel>
 </showcase:ShowcasePage>

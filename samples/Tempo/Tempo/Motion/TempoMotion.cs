@@ -258,8 +258,11 @@ public static class TempoMotion
     /// <summary>A blob's scale at a pointer proximity from 0 to 1: up to 15% larger with the pointer at its center.</summary>
     public static double BlobSwell(double proximity) => 1 + .15 * proximity;
 
-    /// <summary>A blob's opacity at a pointer proximity: resting at 80%, full with the pointer at its center.</summary>
-    public static double BlobGlow(double proximity) => .8 + .2 * proximity;
+    /// <summary>
+    /// A blob's opacity at a pointer proximity: resting at 64%, full with the pointer at its center. The ramp is squared
+    /// because the look was tuned while Avalonia squared opacity under an opacity mask, which 12.2 stopped (#22835).
+    /// </summary>
+    public static double BlobGlow(double proximity) => Math.Pow(.8 + .2 * proximity, 2);
 
     /// <summary>The backdrop blobs' drift, each blob on its own period so they never line up. Runs on the compositor; reduced, the blobs hold still.</summary>
     public static readonly AnimationBuilder BlobDrift = Presto.Build()

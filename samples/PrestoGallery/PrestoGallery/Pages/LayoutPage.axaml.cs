@@ -16,9 +16,19 @@ public partial class LayoutPage : ShowcasePage
 
     private static readonly string[] Views = ["ShortView", "ParagraphView", "IconsView"];
 
+    private static readonly string[] TagNames =
+        ["Avalonia", "Motion", "FLIP", "Springs", "Compositor", "Stagger", "Timelines", "Easing", "Presence", "Layout", "Gestures", "Lottie", "Keyframes", "Morph"];
+
+    // Coral and AccentPale are left to the avatar card, whose test finds it by color.
+    private static readonly IBrush[] Swatches = [Palette.Accent, Palette.Aqua, Palette.Amber, Palette.Violet, Palette.Lime, Palette.Rose];
+
+    public const double WideFrame = 560;
+    private const double NarrowFrame = 300;
+
     private int _next;
     private int _view;
     private bool _moved;
+    private int _nextTag;
 
     public LayoutPage()
     {
@@ -26,6 +36,12 @@ public partial class LayoutPage : ShowcasePage
         for (var i = 0; i < 8; i++) AddCard();
         SlotA.Child = NewSquare();
         SwapHost.Child = BuildView();
+        for (var i = 0; i < 7; i++) AddTag(Tags.Children.Count);
+        for (var i = 0; i < 10; i++) Tiles.Children.Add(NewTile(i));
+        JustifyBox.ItemsSource = Enum.GetValues<FlexJustifyContent>();
+        JustifyBox.SelectedItem = FlexJustifyContent.SpaceBetween;
+        AlignmentBox.ItemsSource = Enum.GetValues<WrapPanelItemsAlignment>();
+        AlignmentBox.SelectedItem = WrapPanelItemsAlignment.Justify;
     }
 
     private double Duration => Slow.IsChecked == true ? 4000 : 400;
@@ -86,7 +102,74 @@ public partial class LayoutPage : ShowcasePage
             SwapHost.AnimateContentSize(Duration, Eases.OutQuint);
         });
         Animate.SetContentSize(Faq, Move);
+        foreach (var child in Tags.Children) ArmReflow(child);
+        foreach (var child in Tiles.Children) ArmReflow(child);
     }
+
+    // Corrected, so a tag that grows or a tile that stretches keeps its label unstretched.
+    private void ArmReflow(Control child) =>
+        Scope.Execute(_ => child.AnimateLayout(Duration, Eases.OutQuint, LayoutAnimateMode.PositionAndSizeCorrected));
+
+    private void JustifySelected(object? sender, SelectionChangedEventArgs e)
+    {
+        if (JustifyBox.SelectedItem is FlexJustifyContent justify) Tags.JustifyContent = justify;
+    }
+
+    private void AlignmentSelected(object? sender, SelectionChangedEventArgs e)
+    {
+        if (AlignmentBox.SelectedItem is WrapPanelItemsAlignment alignment) Tiles.ItemsAlignment = alignment;
+    }
+
+    private void AddTagClicked(object? sender, RoutedEventArgs e) => AddTag(Random.Shared.Next(Tags.Children.Count + 1));
+
+    private void RemoveTag(object? sender, RoutedEventArgs e)
+    {
+        if (Tags.Children.Count > 0) Tags.Children.RemoveAt(Random.Shared.Next(Tags.Children.Count));
+        ApplyGrow();
+    }
+
+    private void ShuffleTiles(object? sender, RoutedEventArgs e)
+    {
+        foreach (var tile in Utils.Shuffle(Tiles.Children.ToArray())) Tiles.Children.Move(Tiles.Children.IndexOf(tile), Tiles.Children.Count - 1);
+    }
+
+    private void ResizePanels(object? sender, RoutedEventArgs e)
+    {
+        var width = FlexFrame.MaxWidth > NarrowFrame ? NarrowFrame : WideFrame;
+        foreach (var frame in new[] { FlexFrame, WrapFrame })
+        {
+            Scope.Execute(_ => frame.Animate(b => b.Property(MaxWidthProperty, width).Duration(Duration).Ease(Eases.OutQuint)));
+        }
+    }
+
+    private void GrowFirstTag(object? sender, RoutedEventArgs e) => ApplyGrow();
+
+    private void ApplyGrow()
+    {
+        for (var i = 0; i < Tags.Children.Count; i++) Flex.SetGrow(Tags.Children[i], i == 0 && GrowTag.IsChecked == true ? 1 : 0);
+    }
+
+    private void AddTag(int index)
+    {
+        var tag = new Border
+        {
+            Classes = { "tag" },
+            Background = Swatches[_nextTag % Swatches.Length],
+            Child = new TextBlock { Text = TagNames[_nextTag++ % TagNames.Length] },
+        };
+        Presence.SetEnter(tag, Recipes.PopIn());
+        Presence.SetExit(tag, Recipes.PopOut());
+        ArmReflow(tag);
+        Tags.Children.Insert(index, tag);
+        ApplyGrow();
+    }
+
+    private static Border NewTile(int index) => new()
+    {
+        Classes = { "tile" },
+        Background = Swatches[(index + 2) % Swatches.Length],
+        Child = new TextBlock { Text = (index + 1).ToString() },
+    };
 
     private void AddCard()
     {

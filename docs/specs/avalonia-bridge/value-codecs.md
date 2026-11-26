@@ -75,8 +75,8 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
   - Tests: `CodecTests.AGradientTweenReusesOneBrushAndLeavesTheOriginalUntouched`
 - **BRIDGE-CODECS-017** — Every brush a codec creates shall have its opacity clamped to 0–1 and be recorded as owned by the tween's target (BRIDGE-TARGETS-024).
   - Tests: `TargetOwnerTests.ACodecCreatedBrushResolvesToItsVisual`
-- **BRIDGE-CODECS-018** — A brush's `Transform` shall not be decoded or carried to the written brush.
-  - Tests: `CodecTests.ABrushesTransformIsNotCarriedToTheWrittenBrush`
+- **BRIDGE-CODECS-018** — A brush's `Transform`, `TransformOrigin` and `RelativeTransform` shall be taken from the end value and set on every brush the tween writes, solid or gradient, including the gradient frames of a run between a solid brush and a gradient.
+  - Tests: `CodecTests.ABrushesTransformsAreTakenFromTheEndValue`, `CodecTests.ABrushesTransformsCarryThroughASolidToGradientRunAndBack`
 
 ### Box shadows
 
@@ -118,21 +118,32 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 - **BRIDGE-CODECS-032** — Reading without the unit (`Presto.Get(target, property, false)`) shall return the current value as a `double`, and a relative value shall apply to that number.
   - Tests: `CodecTests.FontWeightReadsAsANumberSoRelativeValuesWork`
 
+### Font variations
+
+- **BRIDGE-CODECS-033** — A `FontVariationSettings` property shall interpolate each axis on each target, taking a `FontVariationSettings` or a string `FontVariationSettings.Parse` reads (`"none"` an empty set) as its end value; a string `Parse` rejects shall throw its `FormatException` from the `Animate` or `Set` call.
+  - Tests: `CodecTests.FontVariationsWithTheSameAxesInterpolateEachAxis`, `CodecTests.AStringEndValueTweensAsTheParsedSettingsWould`, `CodecTests.SplitPiecesStaggerTheirOwnWeight`
+- **BRIDGE-CODECS-034** — An axis one end does not set shall take, on the tween's first frame, that axis's default in the target's font (its `TextElement` font family, style, weight and stretch), or the other end's value when the font does not declare the axis; a missing (`null`) end sets no axes.
+  - Tests: `CodecTests.AnAxisMissingFromOneEndTakesTheFontsDefault`
+- **BRIDGE-CODECS-035** — Each written axis shall be rounded to whole units, or to a hundredth of its range for an axis the font declares over fewer than 10 units, and a frame whose rounded axes equal the last frame's shall write the same `FontVariationSettings` instance.
+  - Tests: `CodecTests.WrittenAxesAreWholeUnitsAndAnUnchangedFrameRewritesTheSameSettings`
+
 ## Invariants
 
 - A codec never modifies the value a tween started from; brushes are copied into a per-tween brush.
-- Discrete fields (gradient kind, spread, units, shadow inset) are always read from the end value.
+- Discrete fields (gradient kind, spread, units, brush transforms, shadow inset) are always read from the end value.
+- Both ends of a `FontVariationSettings` tween carry the same axes, in tag order, plus a progress channel from 0 to 1.
 
 ## Edge cases
 
 - A brush whose shape the codec does not know (an image or visual brush) is not decoded; the property then falls to the core's handling of an undecodable value.
 - A gradient eased to a solid brush is a gradient on every frame but the last.
 - `Size` and `Rect` components are written as interpolated, so an overshooting ease can produce a negative size.
+- On Avalonia 12.2's Skia backend a `TextBlock` draws the default instance's glyph shapes at the instance's advances, so animating its `FontVariations` changes its spacing but not its weight; split outline pieces draw the instance (BRIDGE-TEXT-063).
 - A `RelativePoint` from a relative start to an absolute end tweens the raw numbers (0.5 → 100 px passes through 50 px).
 
 ## Threading and lifetime
 
-- UI thread only. Per-tween brushes live in a `ConditionalWeakTable` keyed by the tween, so they go with it.
+- UI thread only. Per-tween brushes, and a variations tween's resolved axes and last settings, live in `ConditionalWeakTable`s keyed by the tween, so they go with it.
 
 ## Reduced motion
 
@@ -140,7 +151,7 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 
 ## Allocation
 
-- `Color`, the structs and the font enums box one value per frame. A brush tween mutates its reused brush; pinned by `BridgeAllocationTests.BrushTweenTicksWithinBudget`. `BoxShadows` and `Geometry` allocate a new value every frame.
+- `Color`, the structs and the font enums box one value per frame. A brush tween mutates its reused brush; pinned by `BridgeAllocationTests.BrushTweenTicksWithinBudget`. `BoxShadows` and `Geometry` allocate a new value every frame. A `FontVariationSettings` tween allocates a new settings value only on a frame whose rounded axes change.
 
 ## Provenance
 
@@ -152,13 +163,15 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 - **A brush tween writes a brush of its own.** A solid or gradient tween creates one brush per tween, reuses it on every frame (a gradient's stops rewritten in place) and never modifies the brush it started from; earlier the solid codec was to animate the brush's own color and copy it only when frozen or shared, replaced because the code always copies. Reason: the brush animated from is often immutable or shared.
 - **Solid brush opacity folds into alpha.** A solid brush decodes as its color with alpha × `Opacity` and is written with `Opacity` 1; a solid end shaped as a gradient takes opacity 1 with the folded alpha in its stops, so both ends of solid↔gradient draw as their brushes do. Reason: it stays inside the `Color` kind, so premultiplied and color-space interpolation keep working, an end brush's opacity interpolates without a side channel, and it is pixel-identical for a solid brush (as `Prebuilt/Tints` already does). Rejected: keeping the source `Opacity` WPF-style or lerping it beside the channels, both needing a side channel the codec's `Encode` does not have; keeping the gradient's opacity on the shaped solid end and dividing the alpha by it, which cannot reach a solid alpha above the gradient's opacity.
 - **Gradients are reconciled, not padded.** A solid end takes the gradient's shape in its own color; a missing brush starts as the gradient with every stop at alpha 0; a gradient tweened to a color ends by writing a `SolidColorBrush`; stops are resampled onto the union of both offsets; a kind mismatch snaps the geometry to the end's; a unit mismatch lerps raw numbers in the end's units. Reason: alpha-0 stops fade a missing brush in without a dark fringe, resampling colors each offset as its gradient draws it, geometry does not convert between kinds, ending on a solid brush keeps the property on the brush type it was aimed at, and units follow the `RelativePoint` codec. Rejected: zero-padding stops.
-- **No gradient strings and no brush `Transform`.** Strings are not parsed as gradients, so a gradient end value is a brush instance, and a brush's `Transform` is not carried. Reason: Avalonia's `Brush.Parse` reads colors only; the reason for dropping `Transform` is not recorded.
+- **No gradient strings.** Strings are not parsed as gradients, so a gradient end value is a brush instance. Reason: Avalonia's `Brush.Parse` reads colors only.
+- **Brush transforms are discrete, from the end value.** `Transform`, `TransformOrigin` and `RelativeTransform` (Avalonia 12.2) travel in the end's `DecomposedValue.Discrete` and are set on the written brush, compared by reference so a frame raises no change. Reason: it is the rule for every other field the codec cannot reconcile, and dropping a transform changes the look on the first frame (a gradient rotated through `RelativeTransform` snapped unrotated). `TransformOrigin` goes with them because a transform without its origin draws elsewhere. Rejected: keeping BRIDGE-CODECS-018 as it was (transforms dropped, for a reason never recorded).
 - **Shadows are padded with transparent counterparts.** The shorter `BoxShadows` list gains zero shadows (as CSS pads) in the other end's color at alpha 0; inset is discrete and taken from the end value; strings are claimed through `BoxShadows.Parse`. Reason: a shadow added or dropped fades instead of flashing black.
 - **No `Matrix` codec until a property needs one.** Reason: the transform shorthands go through the bridge's own transform composition.
 - **Bridge bool properties other than `IsVisible` keep `Midpoint`.** `IsHitTestVisible`, `IsEnabled` and the rest flip at the midpoint; a tween wanting hit-testing off for its whole run sets `Discrete = FalseThroughout`. Reason: not recorded.
 - **The `GridLength` codec is pixel-only.** See BRIDGE-ACCORDION.
-- **The font codecs step through static faces.** `FontWeight` and `FontStretch` round on write, and reading without the unit returns the number. Reason: Avalonia has no OpenType variation-axis support, so an in-between `FontWeight` resolves to the nearest face the family has; a numeric read lets relative values (`"+=200"`) work. Revisit if Avalonia adds variation axes.
-- **The plain read keeps the enum.** The plain `Presto.Get` keeps returning the enum, as every codec-backed property returns its own type; the number comes from the unit-less read. Rejected: special-casing the two enums in `AvaloniaPropertyAccessor`.
+- **The font codecs step through static faces.** `FontWeight` and `FontStretch` round on write, and reading without the unit returns the number. Reason: an in-between `FontWeight` resolves to the nearest face the family has, and a variable font's weight is reached through `FontVariations` (BRIDGE-CODECS-033) instead; a numeric read lets relative values (`"+=200"`) work.
+- **Variable-font axes missing from one end take the font's default.** The ends are reconciled to the union of their axes, and an axis one end lacks is resolved against the target's font on the tween's first frame, as `IReconcilingValueCodec.Reconcile` has no target; a trailing progress channel places such an axis on that frame. Reason: an axis left unset draws the font's default, and Avalonia's own interpolation snaps at the midpoint whenever the two ends name different axes, so `wght` alone animating towards `wght, wdth` jumped. Rejected: Avalonia's discrete fallback; a core change giving `Reconcile` the target.
+- **Variable-font frames are quantized.** Written axes are rounded to whole units (a hundredth of the range for an axis spanning fewer than 10, such as `ital`), and an unchanged frame rewrites the last settings. Reason: `GlyphTypeface` caches one clone per normalized position (1/16384 steps) and never evicts them, so a long loop sweeping an axis accumulated clones; whole `wght` or `wdth` units are invisible steps. Revisit if Avalonia adds the eviction its source comment mentions.- **The plain read keeps the enum.** The plain `Presto.Get` keeps returning the enum, as every codec-backed property returns its own type; the number comes from the unit-less read. Rejected: special-casing the two enums in `AvaloniaPropertyAccessor`.
 - **A weight change is allowed to reflow its neighbors.** Characters change width as they thicken, so a weight wave "breathes" along the line. Reason: that is the look of the effect on the web. Rejected: a `SplitTextParams` mode pinning each slot at its rest width, a splitter mode for one demo.
 - **The font codecs reconcile only to claim names.** They implement `IReconcilingValueCodec` with an empty `Reconcile` because `TryParse` is the core's only hook for a string end value; numbers and relative strings still take the core's numeric path. Reason: one generic codec covers both enums without a core change.
 - **Colors interpolate with premultiplied alpha.** See CORE-COLORS.
@@ -172,4 +185,4 @@ The codecs (CORE-TARGETS `IValueCodec`, `IReconcilingValueCodec`) that turn Aval
 
 ## Open items
 
-None.
+- Interpolate a brush's `Transform` and `RelativeTransform` when both ends carry one of the same shape (BRIDGE-CODECS-018 takes them whole from the end value).

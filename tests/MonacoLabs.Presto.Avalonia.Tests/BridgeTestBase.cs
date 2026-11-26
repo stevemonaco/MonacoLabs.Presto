@@ -12,6 +12,9 @@ public abstract class BridgeTestBase : MonacoLabs.Presto.Tests.EngineTestBase
 {
     protected static readonly FontFamily Inter = new("avares://Avalonia.Fonts.Inter/Assets#Inter");
 
+    /// <summary>Archivo's variable face: <c>wght</c> 100–900 (default 600) and <c>wdth</c> 62–125 (default 100).</summary>
+    protected static readonly FontFamily ArchivoVariable = new("avares://MonacoLabs.Presto.Avalonia.Tests/Fonts/Variable#Archivo");
+
     protected BridgeTestBase()
     {
         // A plain [Fact] resets the engine off the UI thread, canceling an earlier test's leftovers from the wrong thread.

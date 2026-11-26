@@ -62,6 +62,64 @@ public sealed class EffectTests : CompositorTestBase
     }
 
     [AvaloniaFact]
+    public void BackdropBlurAnimatesABlurOnTheBackdropEffect()
+    {
+        var border = new Border();
+
+        var animation = Seeked(border, new() { ["BackdropBlur"] = 8 }, 0.5);
+        var blur = Assert.IsType<BlurEffect>(border.BackdropEffect);
+        Assert.Equal(4, blur.Radius, 6);
+        animation.Seek(animation.Duration);
+
+        Assert.Same(blur, border.BackdropEffect);
+        Assert.Equal(8, blur.Radius, 6);
+        Assert.Null(border.Effect);
+    }
+
+    [AvaloniaFact]
+    public void BackdropBlurStartsFromTheUsersBackdropBlurAndRevertRestoresIt()
+    {
+        var own = new BlurEffect { Radius = 10 };
+        var border = new Border { BackdropEffect = own };
+
+        var animation = Seeked(border, new() { ["BackdropBlur"] = 20 }, 0.5);
+        Assert.Equal(15, Assert.IsType<BlurEffect>(border.BackdropEffect).Radius, 6);
+        Assert.Equal(10, own.Radius);
+        Assert.Equal(15, (double)Presto.Get(border, "BackdropBlur")!, 6);
+
+        animation.Revert();
+
+        Assert.Same(own, border.BackdropEffect);
+        Assert.Equal(10, (double)Presto.Get(border, "BackdropBlur")!, 6);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BackdropBlurBackToZeroRemovesItsBlur(bool withOwnEffect)
+    {
+        var own = withOwnEffect ? new DropShadowEffect() : null;
+        var border = new Border { BackdropEffect = own };
+        Seeked(border, new() { ["BackdropBlur"] = 8 });
+
+        Seeked(border, new() { ["BackdropBlur"] = 0 });
+
+        Assert.Same(own, border.BackdropEffect);
+    }
+
+    [AvaloniaFact]
+    public void BackdropBlurAnimatesAlongsideTheEffectShorthands()
+    {
+        var border = new Border();
+
+        Seeked(border, new() { ["BackdropBlur"] = 8, ["Blur"] = 4 }, 0.5);
+        Seeked(border, new() { ["ShadowBlur"] = 6 }, 0.5);
+
+        Assert.IsType<BlurEffect>(border.BackdropEffect);
+        Assert.IsType<DropShadowEffect>(border.Effect);
+    }
+
+    [AvaloniaFact]
     public void AShadowFadedOutIsRemoved()
     {
         var border = new Border();

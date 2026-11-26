@@ -201,6 +201,7 @@ public sealed class RevealTests : BridgeTestBase
     [InlineData("RotateY")]
     [InlineData("ClipInset")]
     [InlineData("MaskSweep")]
+    [InlineData("BackdropBlur")]
     public void TheCompositorRejectsTheShorthandsOnlyTheBridgeRenders(string shorthand) =>
         Assert.Throws<NotSupportedException>(() => new Border().AnimateOnCompositor(new() { [shorthand] = 1, Duration = 100 }));
 

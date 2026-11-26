@@ -38,7 +38,7 @@ Reads the outlines of text as geometry, so letters can change shape: `PrestoAval
 
 ### Outlines
 
-- **BRIDGE-GLYPHS-001** — `GlyphOutline(block, index)` shall return the outline of the block's character at `index`, counted as `TextSplitter.CharsOf` counts the graphemes a character split makes pieces of, shaped with the block's font family, style, weight, stretch, size, letter spacing and font features, in the coordinates of that character's piece, with the nonzero fill rule; while the block is split, it shall read the text from before the split.
+- **BRIDGE-GLYPHS-001** — `GlyphOutline(block, index)` shall return the outline of the block's character at `index`, counted as `TextSplitter.CharsOf` counts the graphemes a character split makes pieces of, shaped with the block's font family, style, weight, stretch, font variations, size, letter spacing and font features, in the coordinates of that character's piece, with the nonzero fill rule; while the block is split, it shall read the text from before the split.
   - Tests: `GlyphOutlineTests.EachCharOutlineLandsOnItsPieceInsideItsSlot`, `GlyphOutlineTests.GlyphOutlineCountsCharactersWithoutWhitespace`, `GlyphOutlineTests.OutlinesShapeWithTheBlocksFontFeatures`
 - **BRIDGE-GLYPHS-002** — When `index` is not the index of one of the block's characters, `GlyphOutline` shall throw `ArgumentOutOfRangeException`.
   - Tests: `GlyphOutlineTests.GlyphOutlineCountsCharactersWithoutWhitespace`
@@ -48,6 +48,8 @@ Reads the outlines of text as geometry, so letters can change shape: `PrestoAval
   - Tests: `GlyphOutlineTests.WhitespaceHasAnEmptyOutline`, `GlyphOutlineTests.EmojiHasAnEmptyOutline`
 - **BRIDGE-GLYPHS-005** — When the font simulates bold or oblique, the outline shall carry the simulation as Avalonia.Skia draws it: read from the platform's typeface when the platform (DirectWrite, fontconfig) simulated inside it, and emboldened or skewed by -0.3 through Skia for any simulation it did not.
   - Tests: `GlyphOutlineTests.ASimulatedBoldOrObliqueOutlineCoversTheInkAvaloniaDraws`
+- **BRIDGE-GLYPHS-018** — When the text is shaped at an instance of a variable font (`Typeface.FontVariations`, or a block's `FontVariations`), each glyph's outline shall be the one Avalonia reads from the font's `glyf` and `gvar` tables at the instance's coordinates (`GlyphTypeface.GetGlyphOutline`), scaled from design units and skewed by -0.3 for an oblique simulation; a glyph with no such outline (a CFF font) shall be read at the default instance as before.
+  - Tests: `GlyphOutlineTests.AVariableInstancesOutlineIsReadAtItsCoordinates`
 - **BRIDGE-GLYPHS-016** — Read from a laid-out block's text layout, each grapheme's outline shall be the glyphs that layout shaped for it, in context, relative to the grapheme's slot: the union of the layout's hit-test rectangles for it, in block coordinates.
   - Tests: `GlyphOutlineTests.AGraphemesOutlineInContextIsTheGlyphTheBlockDraws`, `GlyphRecipeTests.HidingACharacterKeepsTheBlocksLayout`
 - **BRIDGE-GLYPHS-017** — Hiding some of a block's graphemes shall leave its glyphs, their positions and the in-context outlines those of the plain text, and restoring them shall leave the block as plain `Text` with a binding on `Text` still updating it.
@@ -92,12 +94,13 @@ Reads the outlines of text as geometry, so letters can change shape: `PrestoAval
 - A grapheme of several glyphs (a base letter and a combining mark) gives one outline holding every glyph's figures.
 - Glyphs of a fallback font used for characters the typeface lacks are read from that fallback font.
 - Outer figures that overlap (common in variable fonts) are cut each on its own, so their shards overlap where they do; a degenerate ring with no ear is clipped anyway, so cutting always ends.
+- On Avalonia 12.2's Skia backend an instance's outline is not the ink of the same text in a `TextBlock`: Skia draws the default instance's glyph shapes at the instance's advances (BRIDGE-GLYPHS-018).
 - A font collection's stream holds every face; the face whose family name matches the typeface is read, else the first.
 - When Avalonia.Skia no longer has `GeometryImpl.FillPath`, or `SkiaTypeface.SKTypeface` and `PlatformSimulations`, the first outline read (of a platform-simulated face, for the latter) throws `MissingMethodException`.
 
 ## Threading and lifetime
 
-- UI thread, as text layout is. The SkiaSharp typeface read for each Avalonia glyph typeface is cached for as long as that glyph typeface lives.
+- UI thread, as text layout is. The SkiaSharp typeface read for each Avalonia glyph typeface is cached for as long as that glyph typeface lives; a variable font's instances share their default instance's.
 
 ## Reduced motion
 
@@ -122,6 +125,8 @@ Reads the outlines of text as geometry, so letters can change shape: `PrestoAval
 - **Fill points are a jittered grid.** Reason: a grid gives the even density particles need to tile the letters, and a jitter of at most a quarter cell hides the grid's rows once the particles move while keeping every point in its own cell. Rejected: Poisson-disk sampling, which costs more for no visible difference at particle sizes. Edge points are spread evenly over each figure rather than exactly `spacing` apart, so a closed figure has no short last gap.
 - **Straight segments are subdivided too.** Reason: a warp maps points, so a long straight stem with only its two ends would stay straight; subdividing at load keeps every later frame allocation-free apart from its output geometry.
 - **A face the platform simulated is read from Avalonia.Skia's typeface, not the font data.** Since Avalonia 12.2, DirectWrite and fontconfig embolden or slant inside the typeface they match, and Avalonia.Skia adds through Skia only the simulations the platform did not apply; the font data holds the face as designed, so re-simulating it through Skia drew a heavier bold than the ink. Its `SKTypeface` and `PlatformSimulations` are internal to Avalonia.Skia and read through `[UnsafeAccessor]`. Reason: the outline must cover the ink Avalonia draws (BRIDGE-GLYPHS-005). Rejected for now: always reading the platform's typeface, which is what Avalonia draws but would move every outline off the public `TryGetStream` path to fix a case only simulation shows.
+
+- **A variable instance's outline is read at its coordinates, not as Skia draws it.** An instance's glyphs come from Avalonia's managed `glyf` reader at the instance (`GetGlyphOutline`, its Skia path read as for any geometry), placed at the instance's advances. Reason: Avalonia tracks variations on `GlyphTypeface` so that outline readers are variation-correct whatever the platform draws, and Avalonia.Skia 12.2 draws text in the default glyph shapes with the instance's advances, which an outline matching it would copy as thin letters spread apart; the instance is what the settings ask for, matches the font's own static instance, and is what Skia will draw once it applies variations. SkiaSharp 3.119 has no variable-font arguments to read it through. Rejected: matching the ink, the rule BRIDGE-GLYPHS-005 follows for simulations, for instances too.
 
 ## Non-goals
 
