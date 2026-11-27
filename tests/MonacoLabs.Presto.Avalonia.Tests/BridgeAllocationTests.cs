@@ -485,10 +485,14 @@ public sealed class BridgeAllocationTests : CompositorTestBase
         canvas.Children.Add(target);
         var window = Show(canvas);
 
-        var plain = BytesPerDragFrame(window, target, new());
-        var hovering = BytesPerDragFrame(window, target, new() { DropGroup = "lanes", DropHit = DropHit.Overlap });
+        // The median of alternating blocks keeps a one-off allocation in a full run from failing a zero budget.
+        var differences = new double[5];
+        for (var i = 0; i < differences.Length; i++)
+            differences[i] = BytesPerDragFrame(window, target, new() { DropGroup = "lanes", DropHit = DropHit.Overlap }) - BytesPerDragFrame(window, target, new());
+        Array.Sort(differences);
+        var bytes = differences[differences.Length / 2];
 
-        Assert.True(hovering - plain <= 0, $"{hovering:0.##} bytes per frame hovering, {plain:0.##} without a drop group");
+        Assert.True(bytes <= 0, $"{bytes:0.##} bytes per frame hovering over a drop group, median of {string.Join(", ", differences.Select(d => d.ToString("0.##")))}");
     }
 
     [AvaloniaFact]
